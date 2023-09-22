@@ -18,6 +18,11 @@ class LocalizationLib {
       LanguageCodes.forgotPasswordMoreInfoTextInfo.toString():
           'Một liên kết đặt lại mật khẩu sẽ được gửi đến email của bạn để đặt lại mật khẩu. Nếu bạn không nhận được email trong vòng vài phút, vui lòng thử lại.',
       LanguageCodes.backInfoTextInfo.toString(): 'Quay lại',
+      LanguageCodes.sendPasswordSuccessTextInfo.toString():
+          'Một liên kết đặt lại mật khẩu được gửi đến địa chỉ email của bạn. Vui lòng kiểm tra email của bạn.',
+      LanguageCodes.notificationTextInfo.toString(): 'Thông báo',
+      LanguageCodes.sendTextInfo.toString(): 'Đã gửi',
+      LanguageCodes.ignoreTextInfo.toString(): 'Đã hiểu',
     }
   };
   static String L(String key, {String locale = 'vi'}) {

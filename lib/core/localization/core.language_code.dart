@@ -9,5 +9,9 @@ enum LanguageCodes {
   noAccountTextInfo,
   submitTextInfo,
   forgotPasswordMoreInfoTextInfo,
-  backInfoTextInfo
+  backInfoTextInfo,
+  sendPasswordSuccessTextInfo,
+  notificationTextInfo,
+  sendTextInfo,
+  ignoreTextInfo
 }

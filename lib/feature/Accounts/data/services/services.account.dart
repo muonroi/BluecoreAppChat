@@ -64,7 +64,7 @@ class ServiceAccount {
           responseType: ResponseType.plain,
           headers: headers));
       final response = await dio.post(
-        BaseApi.authenticate,
+        BaseApi.sendPassword,
         data: data,
       );
       if (response.statusCode == 200) {

@@ -6,6 +6,7 @@ import 'package:bluecore_appchat/shared/settings/shared.settings.color.dart';
 import 'package:bluecore_appchat/shared/settings/shared.settings.dart';
 import 'package:bluecore_appchat/shared/settings/shared.settings.font.dart';
 import 'package:bluecore_appchat/shared/settings/shared.settings.image.dart';
+import 'package:bluecore_appchat/shared/widgets/textfield/shared.widget.textfield.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -77,7 +78,8 @@ class _AccountPageState extends State<AccountPage> {
             height: getPercentageOfDevice(context, expectHeight: 100).height,
             child: Align(
               alignment: Alignment.bottomLeft,
-              child: TextFormField(
+              child: TextFormFieldGlobal(
+                obscureText: false,
                 controller: _usernameController,
                 decoration: InputDecoration(
                     icon: const Icon(
@@ -93,7 +95,7 @@ class _AccountPageState extends State<AccountPage> {
             height: getPercentageOfDevice(context, expectHeight: 100).height,
             child: Align(
               alignment: Alignment.bottomLeft,
-              child: TextFormField(
+              child: TextFormFieldGlobal(
                 controller: _passwordController,
                 obscureText: _isVisibility,
                 decoration: InputDecoration(

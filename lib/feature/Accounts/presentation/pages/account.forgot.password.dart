@@ -3,7 +3,6 @@ import 'package:bluecore_appchat/feature/Accounts/data/repository/repository.acc
 import 'package:bluecore_appchat/shared/settings/shared.settings.color.dart';
 import 'package:bluecore_appchat/shared/settings/shared.settings.dart';
 import 'package:bluecore_appchat/shared/settings/shared.settings.font.dart';
-import 'package:bluecore_appchat/shared/settings/shared.settings.image.dart';
 import 'package:bluecore_appchat/shared/widgets/buttons/shared.widget.button.dart';
 import 'package:flutter/material.dart';
 
@@ -15,7 +14,15 @@ class ForgotPassword extends StatefulWidget {
 }
 
 class _ForgotPasswordState extends State<ForgotPassword> {
-  final _usernameController = TextEditingController();
+  @override
+  void initState() {
+    _usernameController = TextEditingController();
+    _isShowLabelError = false;
+    super.initState();
+  }
+
+  late TextEditingController _usernameController;
+  late bool _isShowLabelError;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,7 +68,9 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                     width:
                         getPercentageOfDevice(context, expectWidth: 130).width,
                     child: ButtonGlobal(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: ColorsGlobal.whiteColor,
                       ),
@@ -75,8 +84,56 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                     width:
                         getPercentageOfDevice(context, expectWidth: 120).width,
                     child: ButtonGlobal(
-                      onPressed: () {
-                        var accountRepository = AccountRepository("", "");
+                      onPressed: () async {
+                        var accountRepository =
+                            AccountRepository(_usernameController.text, "");
+                        var result = await accountRepository.forgotPassword();
+                        if (result.success == true) {
+                          if (mounted) {
+                            showDialog(
+                                context: context,
+                                builder: (builder) {
+                                  return AlertDialog(
+                                    title: Text(
+                                      L(LanguageCodes.notificationTextInfo
+                                          .toString()),
+                                      style: FontsGlobal.h3,
+                                    ),
+                                    content: Text(
+                                      L(LanguageCodes
+                                          .sendPasswordSuccessTextInfo
+                                          .toString()),
+                                      style: FontsGlobal.h5,
+                                    ),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        style: TextButton.styleFrom(
+                                          textStyle: Theme.of(context)
+                                              .textTheme
+                                              .labelLarge,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8.0),
+                                          decoration: BoxDecoration(
+                                              color: ColorsGlobal.mainColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(30.0)),
+                                          child: Text(
+                                              L(LanguageCodes.ignoreTextInfo
+                                                  .toString()),
+                                              style: FontsGlobal.h5.copyWith(
+                                                  color:
+                                                      ColorsGlobal.whiteColor)),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                      )
+                                    ],
+                                  );
+                                });
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: ColorsGlobal.mainColor,
