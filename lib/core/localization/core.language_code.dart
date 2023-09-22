@@ -1,0 +1,1 @@
+enum LanguageCodes { notfoundTextInfo }
