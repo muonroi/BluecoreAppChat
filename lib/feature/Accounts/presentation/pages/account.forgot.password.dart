@@ -17,9 +17,11 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   @override
   void initState() {
     _usernameController = TextEditingController();
+
     super.initState();
   }
 
+  final bool ss = true;
   late TextEditingController _usernameController;
   @override
   Widget build(BuildContext context) {
