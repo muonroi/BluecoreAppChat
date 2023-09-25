@@ -17,12 +17,10 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   @override
   void initState() {
     _usernameController = TextEditingController();
-    _isShowLabelError = false;
     super.initState();
   }
 
   late TextEditingController _usernameController;
-  late bool _isShowLabelError;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
