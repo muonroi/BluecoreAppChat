@@ -1,7 +1,7 @@
-import 'package:bluecore_appchat/core/localization/core.language.dart';
-import 'package:bluecore_appchat/core/localization/core.localization.dart';
-import 'package:bluecore_appchat/shared/models/device.dart';
-import 'package:bluecore_appchat/shared/settings/shared.settings.base.url.dart';
+import 'package:bluecore/core/localization/core.language.dart';
+import 'package:bluecore/core/localization/core.localization.dart';
+import 'package:bluecore/shared/models/device.dart';
+import 'package:bluecore/shared/settings/shared.settings.base.url.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';

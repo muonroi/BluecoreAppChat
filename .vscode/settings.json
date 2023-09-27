@@ -4,9 +4,12 @@
         "baseoutput",
         "bluecore",
         "cupertino",
+        "deleter",
         "metabase",
         "netcore",
         "notfound",
-        "signalr"
+        "signalr",
+        "signin",
+        "spinkit"
     ]
 }

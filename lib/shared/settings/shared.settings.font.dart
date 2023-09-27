@@ -1,5 +1,5 @@
+import 'package:bluecore/shared/settings/shared.settings.color.dart';
 import 'package:flutter/material.dart';
-import 'package:bluecore_appchat/shared/settings/shared.settings.color.dart';
 
 class FontsGlobal {
   static List<String> getFontsNameAvailable() => [inter];

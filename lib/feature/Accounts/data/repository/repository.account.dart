@@ -1,6 +1,6 @@
-import 'package:bluecore_appchat/feature/Accounts/data/models/model.authenticate.dart';
-import 'package:bluecore_appchat/feature/Accounts/data/services/services.account.dart';
-import 'package:bluecore_appchat/shared/models/model.baseoutput.dart';
+import 'package:bluecore/feature/accounts/data/models/model.authenticate.dart';
+import 'package:bluecore/feature/accounts/data/services/services.account.dart';
+import 'package:bluecore/shared/models/model.baseoutput.dart';
 
 class AccountRepository {
   final String username;

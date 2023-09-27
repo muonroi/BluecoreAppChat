@@ -1,5 +1,5 @@
-import 'package:bluecore_appchat/core/localization/core.language.dart';
-import 'package:bluecore_appchat/core/localization/core.language_code.dart';
+import 'package:bluecore/core/localization/core.language.dart';
+import 'package:bluecore/core/localization/core.language_code.dart';
 
 class LocalizationLib {
   static final Map<String, Map<String, String>> _localizedValues = {
@@ -23,6 +23,33 @@ class LocalizationLib {
       LanguageCodes.notificationTextInfo.toString(): 'Thông báo',
       LanguageCodes.sendTextInfo.toString(): 'Đã gửi',
       LanguageCodes.ignoreTextInfo.toString(): 'Đã hiểu',
+      LanguageCodes.playgroundTextInfo.toString(): 'Kiểm tra',
+      LanguageCodes.blueCoreBotTextInfo.toString(): 'Bot bluecore',
+      LanguageCodes.customerIdTextInfo.toString(): 'Mã khách hàng',
+      LanguageCodes.enterContentMessageChatTextInfo.toString():
+          'Nhập nội dung tin nhắn ở đây',
+      LanguageCodes.historiesMessageChatTextInfo.toString(): 'Lịch sử',
+      LanguageCodes.supportedCustomerMessageChatTextInfo.toString():
+          'Hệ thống hỗ trợ khách hàng',
+      LanguageCodes.emptyHistoriesMessageChatTextInfo.toString():
+          'Lịch sử trống',
+      LanguageCodes.removeAllMessageChatTextInfo.toString(): 'Xoá tất cả',
+      LanguageCodes.logoutTextInfo.toString(): 'Đăng xuất',
+      LanguageCodes.removeSingleChatTextInfo.toString(): 'Xoá trò chuyện',
+      LanguageCodes.changeNameChatTextInfo.toString(): 'Sửa tên',
+      LanguageCodes.newChatTextInfo.toString(): 'Trò chuyện mới',
+      LanguageCodes.respondingTextInfo.toString(): 'Đang phản hồi...',
+      LanguageCodes.pleaseChooseChatIdTextInfo.toString():
+          'Vui lòng chọn trò chuyện cần đổi tên',
+      LanguageCodes.noNameChatIdTextInfo.toString(): 'Chưa đặt tên',
+      LanguageCodes.errorServerTextInfo.toString():
+          'Máy chủ không phản hồi vui lòng thử lại sau',
+      LanguageCodes.isConfirmTextInfo.toString():
+          'Thao tác này không thể hoàn tác! Bạn có muốn thực hiện?',
+      LanguageCodes.isSureTextInfo.toString(): 'Đồng ý',
+      LanguageCodes.isNotSureTextInfo.toString(): 'Không',
+      LanguageCodes.youSureLogoutTextInfo.toString():
+          'Bạn có muốn đăng xuất không?',
     }
   };
   static String L(String key, {String locale = 'vi'}) {

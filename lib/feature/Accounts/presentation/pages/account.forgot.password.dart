@@ -1,19 +1,19 @@
-import 'package:bluecore_appchat/core/localization/core.language_code.dart';
-import 'package:bluecore_appchat/feature/Accounts/data/repository/repository.account.dart';
-import 'package:bluecore_appchat/shared/settings/shared.settings.color.dart';
-import 'package:bluecore_appchat/shared/settings/shared.settings.dart';
-import 'package:bluecore_appchat/shared/settings/shared.settings.font.dart';
-import 'package:bluecore_appchat/shared/widgets/buttons/shared.widget.button.dart';
+import 'package:bluecore/core/localization/core.language_code.dart';
+import 'package:bluecore/feature/accounts/data/repository/repository.account.dart';
+import 'package:bluecore/shared/settings/shared.settings.color.dart';
+import 'package:bluecore/shared/settings/shared.settings.dart';
+import 'package:bluecore/shared/settings/shared.settings.font.dart';
+import 'package:bluecore/shared/widgets/buttons/shared.widget.button.dart';
 import 'package:flutter/material.dart';
 
-class ForgotPassword extends StatefulWidget {
-  const ForgotPassword({super.key});
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
 
   @override
-  State<ForgotPassword> createState() => _ForgotPasswordState();
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-class _ForgotPasswordState extends State<ForgotPassword> {
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   void initState() {
     _usernameController = TextEditingController();
