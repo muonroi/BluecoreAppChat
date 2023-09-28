@@ -167,7 +167,10 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                 if (userChoice && mounted) {
                                   Navigator.push(context,
                                       MaterialPageRoute(builder: (builder) {
-                                    _sharedPreferences!.clear();
+                                    _sharedPreferences!
+                                        .remove(KeyToken.accessToken.name);
+                                    _sharedPreferences!
+                                        .remove(KeyToken.refreshToken.name);
                                     return const AccountPage();
                                   }));
                                 }
