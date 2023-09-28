@@ -10,6 +10,7 @@ class TextFormFieldGlobal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      maxLines: 1,
       controller: controller,
       obscureText: obscureText,
       decoration: decoration,
