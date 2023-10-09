@@ -224,6 +224,8 @@ class _AccountPageState extends State<AccountPage> {
                       accountInfo.result!.accessToken);
                   _sharedPreferences.setString(KeyToken.refreshToken.name,
                       accountInfo.result!.refreshToken);
+                  _sharedPreferences.setString(KeyToken.encToken.name,
+                      accountInfo.result!.encryptedAccessToken);
                   _isShowLabelError = false;
                   if (mounted) {
                     _isLoading = false;

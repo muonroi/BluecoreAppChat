@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum KeyToken { accessToken, refreshToken }
+enum KeyToken { accessToken, refreshToken, encToken }
 
 String L(String key, {String locate = Languages.vi}) {
   return LocalizationLib.L(key, locale: locate);

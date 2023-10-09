@@ -82,7 +82,7 @@ class AuthenticateResult {
   factory AuthenticateResult.fromJson(Map<String, dynamic> json) =>
       AuthenticateResult(
         accessToken: json["accessToken"],
-        encryptedAccessToken: json["encryptedAccessToken"],
+        encryptedAccessToken: json["encryptedAccessToken"].toString(),
         expireInSeconds: json["expireInSeconds"],
         shouldResetPassword: json["shouldResetPassword"],
         passwordResetCode: json["passwordResetCode"],

@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:bluecore/core/localization/core.language_code.dart';
+import 'package:bluecore/core/signalr/signalr.central.dart';
 import 'package:bluecore/feature/accounts/presentation/pages/account.signin.page.dart';
 import 'package:bluecore/feature/chats/bloc/GetAllChatHistories/get_all_chat_histories_bloc.dart';
 import 'package:bluecore/feature/chats/bloc/GetHistoriesBloc/histories_chat_bloc.dart';
@@ -11,11 +13,21 @@ import 'package:bluecore/shared/settings/shared.settings.color.dart';
 import 'package:bluecore/shared/settings/shared.settings.dart';
 import 'package:bluecore/shared/settings/shared.settings.font.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_link_previewer/flutter_link_previewer.dart'
+    show regexLink;
+import 'package:flutter_parsed_text/flutter_parsed_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:signalr_netcore/http_connection_options.dart';
+import 'package:signalr_netcore/hub_connection.dart';
+import 'package:signalr_netcore/hub_connection_builder.dart';
+import 'package:signalr_netcore/ihub_protocol.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
+import 'package:bluecore/feature/chats/settings/setting.chat.dart';
 
 class MessageAiPage extends StatefulWidget {
   const MessageAiPage({super.key});
@@ -35,8 +47,24 @@ class _MessageAiPageState extends State<MessageAiPage> {
     _conversationId = '';
     _currentIndex = -1;
     _chatRepository = ChatRepository();
+    status = '';
+    _hubConnection =
+        HubConnectionBuilder().withUrl(SignalrCentral.chatStatus).build();
+    _initSharedPreferences().then((value) {
+      _hubConnection = HubConnectionBuilder()
+          .withUrl(SignalrCentral.chatStatus,
+              options: HttpConnectionOptions(
+                  headers: setHeader(),
+                  accessTokenFactory: () async {
+                    var sharedPreferences =
+                        await SharedPreferences.getInstance();
+                    return sharedPreferences
+                        .getString(KeyToken.accessToken.name)!;
+                  }))
+          .withAutomaticReconnect(retryDelays: [30000]).build();
+      initHubAndListenStatus();
+    });
     super.initState();
-    _initSharedPreferences();
   }
 
   @override
@@ -55,11 +83,16 @@ class _MessageAiPageState extends State<MessageAiPage> {
   }
 
   void _handleSendPressed(types.PartialText message) {
-    final textMessage = types.TextMessage(
+    final textMessage = types.CustomMessage(
       author: _user,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       id: const Uuid().v4(),
-      text: message.text,
+      repliedMessage: types.TextMessage(
+          author: _user,
+          createdAt: 1655648401000,
+          id: const Uuid().v4(),
+          type: types.MessageType.text,
+          text: message.text),
     );
     _addMessage(textMessage);
     _chatBloc.add(AskInfo(_conversationId, message.text));
@@ -72,7 +105,22 @@ class _MessageAiPageState extends State<MessageAiPage> {
     }
   }
 
-  SharedPreferences? _sharedPreferences;
+  MessageHeaders setHeader() {
+    final defaultHeaders = MessageHeaders();
+    defaultHeaders.setHeaderValue("enc_auth_token",
+        _sharedPreferences.getString(KeyToken.encToken.name)!);
+    return defaultHeaders;
+  }
+
+  Future<void> initHubAndListenStatus() async {
+    await _hubConnection.start();
+    await _hubConnection.invoke("JoinStatusGroup", args: ["getGroupStatus"]);
+    debugPrint('start');
+  }
+
+  late HubConnection _hubConnection;
+  late String status;
+  late SharedPreferences _sharedPreferences;
   late GlobalKey<ScaffoldState> _drawerScaffoldKey;
   late GetAllChatHistoriesBloc _allChatHistoriesBloc;
   late ChatBloc _chatBloc;
@@ -85,6 +133,174 @@ class _MessageAiPageState extends State<MessageAiPage> {
   late ChatRepository _chatRepository;
   @override
   Widget build(BuildContext context) {
+    Widget customMessageBuilder(types.CustomMessage customMessage,
+        {required int messageWidth}) {
+      bool isBot(String id) => id == DefaultTemplate.getBotTemplate().id;
+      var content = customMessage.repliedMessage as types.TextMessage;
+      return Stack(children: [
+        Container(
+          padding: const EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+            color: isBot(content.author.id)
+                ? ColorsGlobal.customerChatColor
+                : ColorsGlobal.mainColor,
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Column(
+            children: [
+              GestureDetector(
+                onDoubleTap: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      RegExp regex = RegExp(
+                        r'\|(?:([^\r\n|]*)\|)+\r?\n\|(?:(:?-+:?)\|)+\r?\n(\|(?:([^\r\n|]*)\|)+\r?\n)+',
+                        multiLine: true,
+                      );
+
+                      return SizedBox(
+                        height: getPercentageOfDevice(context, expectHeight: 80)
+                            .height,
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              IconButton(
+                                  onPressed: () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: content.text));
+                                    Navigator.of(context).pop();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        backgroundColor: ColorsGlobal.mainColor,
+                                        content: SizedBox(
+                                            width: getPercentageOfDevice(
+                                                    context,
+                                                    expectWidth: 50)
+                                                .width,
+                                            child: const Text('Copied')),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.copy)),
+                              regex.hasMatch(content.text)
+                                  ? IconButton(
+                                      onPressed: () {
+                                        prePreviewTable(context, content.text);
+                                      },
+                                      icon: const Icon(Icons.preview))
+                                  : Container()
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: ParsedText(
+                  onTap: () {},
+                  text: content.text,
+                  selectable: true,
+                  style: isBot(content.author.id)
+                      ? FontsGlobal.h5
+                      : FontsGlobal.h5.copyWith(color: ColorsGlobal.whiteColor),
+                  regexOptions:
+                      const RegexOptions(multiLine: true, dotAll: true),
+                  parse: [
+                    MatchText(
+                      pattern:
+                          '\\|(?:([^\r\n|]*)\\|)+\r?\n\\|(?:(:?-+:?)\\|)+\r?\n(\\|(?:([^\r\n|]*)\\|)+\r?\n)+',
+                      onTap: (url) {
+                        prePreviewTable(context, url);
+                      },
+                      style: FontsGlobal.h5,
+                      renderWidget: renderMarkdownWidget,
+                    ),
+                    MatchText(
+                      pattern: regexLink,
+                      onTap: (url) async {
+                        debugPrint(url);
+                        if (await canLaunchUrl(Uri.parse(url))) {
+                          await launchUrl(Uri.parse(url));
+                        }
+                      },
+                      style: FontsGlobal.h5
+                          .copyWith(decoration: TextDecoration.underline),
+                      renderWidget: renderMarkdownWidget,
+                    ),
+                    MatchText(
+                      pattern: '(\\*\\*|\\*)(.*?)(\\*\\*|\\*)',
+                      onTap: (_) {},
+                      style:
+                          FontsGlobal.h5.copyWith(fontWeight: FontWeight.w700),
+                      renderText: (
+                          {required String str, required String pattern}) {
+                        return {
+                          'display': str.replaceAll(RegExp('(\\*\\*|\\*)'), '')
+                        };
+                      },
+                    ),
+                    MatchText(
+                      pattern: "\\[([^\\]]*)\\]\\(.*\\)",
+                      onTap: (str) async {
+                        RegExp regex = RegExp(r'\[.*\]\((.*)\)');
+                        Match match = regex.firstMatch(str)!;
+                        if (await canLaunchUrl(Uri.parse(match.group(1)!))) {
+                          await launchUrl(Uri.parse(match.group(1)!));
+                        }
+                      },
+                      style:
+                          FontsGlobal.h5.copyWith(fontWeight: FontWeight.w700),
+                      renderText: (
+                          {required String str, required String pattern}) {
+                        return {
+                          'display': str.replaceAll(RegExp('\\(.*\\)'), '')
+                        };
+                      },
+                    ),
+                    MatchText(
+                      pattern: '_(.*?)_',
+                      onTap: (_) {},
+                      style:
+                          FontsGlobal.h5.copyWith(fontStyle: FontStyle.italic),
+                      renderText: (
+                          {required String str, required String pattern}) {
+                        return {'display': str.replaceAll('_', '')};
+                      },
+                    ),
+                    MatchText(
+                      pattern: '~(.*?)~',
+                      onTap: (_) {},
+                      style: FontsGlobal.h5.copyWith(
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                      renderText: (
+                          {required String str, required String pattern}) {
+                        return {'display': str.replaceAll('~', '')};
+                      },
+                    ),
+                    MatchText(
+                      pattern: '`(.*?)`',
+                      onTap: (_) {},
+                      style: FontsGlobal.h5.copyWith(
+                        fontFamily: Platform.isIOS ? 'Courier' : 'monospace',
+                      ),
+                      renderText: (
+                          {required String str, required String pattern}) {
+                        return {'display': str.replaceAll('`', '')};
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]);
+    }
+
     return Scaffold(
         resizeToAvoidBottomInset: true,
         key: _drawerScaffoldKey,
@@ -159,17 +375,18 @@ class _MessageAiPageState extends State<MessageAiPage> {
                               tooltip:
                                   L(LanguageCodes.logoutTextInfo.toString()),
                               onPressed: () async {
-                                var userChoice = await _showConfirmationDialog(
+                                var userChoice = await showConfirmationDialog(
                                     context,
                                     L(LanguageCodes.youSureLogoutTextInfo
-                                        .toString()));
+                                        .toString()),
+                                    null);
                                 userChoice = userChoice ?? false;
                                 if (userChoice && mounted) {
                                   Navigator.push(context,
                                       MaterialPageRoute(builder: (builder) {
-                                    _sharedPreferences!
+                                    _sharedPreferences
                                         .remove(KeyToken.accessToken.name);
-                                    _sharedPreferences!
+                                    _sharedPreferences
                                         .remove(KeyToken.refreshToken.name);
                                     return const AccountPage();
                                   }));
@@ -213,10 +430,13 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                                           .toString()),
                                                       onPressed: () async {
                                                         bool? userChoice =
-                                                            await _showConfirmationDialog(
+                                                            await showConfirmationDialog(
                                                                 context,
                                                                 L(LanguageCodes
                                                                     .isConfirmTextInfo
+                                                                    .toString()),
+                                                                L(LanguageCodes
+                                                                    .removeAllMessageChatTextInfo
                                                                     .toString()));
                                                         userChoice =
                                                             userChoice ?? false;
@@ -338,10 +558,13 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                                     .toString()),
                                                 onPressed: () async {
                                                   bool? userChoice =
-                                                      await _showConfirmationDialog(
+                                                      await showConfirmationDialog(
                                                           context,
                                                           L(LanguageCodes
                                                               .isConfirmTextInfo
+                                                              .toString()),
+                                                          L(LanguageCodes
+                                                              .removeSingleChatTextInfo
                                                               .toString()));
                                                   userChoice =
                                                       userChoice ?? false;
@@ -385,6 +608,7 @@ class _MessageAiPageState extends State<MessageAiPage> {
           child: BlocListener<ChatBloc, MyChatState>(
             listener: (context, state) {
               Chat(
+                customMessageBuilder: customMessageBuilder,
                 customBottomWidget:
                     state is AskChatLoadingState ? TextFormField() : null,
                 messages: messages.reversed.toList(),
@@ -396,26 +620,38 @@ class _MessageAiPageState extends State<MessageAiPage> {
             },
             child: BlocBuilder<ChatBloc, MyChatState>(
               builder: (context, state) {
-                if (state is AskChatLoadingState) {
-                  if (state.boolThinking) {
-                    _addMessage(types.TextMessage(
+                _hubConnection.on('getStatus', (arguments) {
+                  if (state is AskChatLoadingState) {
+                    if (state.boolThinking) {
+                      _addMessage(types.TextMessage(
                         author: _bot,
                         id: 'bot-thinking',
                         type: types.MessageType.text,
-                        text: L(LanguageCodes.respondingTextInfo.toString())));
-                    state.boolThinking = false;
+                        text: arguments != null
+                            ? arguments.first.toString()
+                            : 'processing',
+                      ));
+                      state.boolThinking = false;
+                    }
                   }
-                }
+                });
+
                 if (state is AskChatLoadedState) {
                   messages
                       .removeWhere((element) => element.id == 'bot-thinking');
                   if (state.changeChatScreen) {
                     var answer = state.answerInfo.result!.answer;
-                    _addMessage(types.TextMessage(
+
+                    _addMessage(types.CustomMessage(
                         author: _bot,
                         id: const Uuid().v4(),
-                        type: types.MessageType.text,
-                        text: answer));
+                        type: types.MessageType.custom,
+                        repliedMessage: types.TextMessage(
+                            author: _bot,
+                            createdAt: 1655648401000,
+                            id: const Uuid().v4(),
+                            type: types.MessageType.text,
+                            text: answer)));
                     state.changeChatScreen = false;
                   }
                   WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -436,8 +672,12 @@ class _MessageAiPageState extends State<MessageAiPage> {
                     });
                   }
                   return Chat(
-                    customBottomWidget:
-                        state is AskChatLoadingState ? TextFormField() : null,
+                    customMessageBuilder: customMessageBuilder,
+                    customBottomWidget: state is AskChatLoadingState
+                        ? TextFormField(
+                            readOnly: true,
+                          )
+                        : null,
                     messages: messages.reversed.toList(),
                     onSendPressed: _handleSendPressed,
                     user: _user,
@@ -446,6 +686,7 @@ class _MessageAiPageState extends State<MessageAiPage> {
                   );
                 }
                 return Chat(
+                  customMessageBuilder: customMessageBuilder,
                   customBottomWidget:
                       state is AskChatLoadingState ? TextFormField() : null,
                   messages: messages.reversed.toList(),
@@ -458,45 +699,5 @@ class _MessageAiPageState extends State<MessageAiPage> {
             ),
           ),
         ));
-  }
-
-  Future<bool?> _showConfirmationDialog(
-      BuildContext context, String notification) async {
-    return showDialog<bool?>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            L(LanguageCodes.notificationTextInfo.toString()),
-            style: FontsGlobal.h4,
-          ),
-          content: Text(
-            notification,
-            style: FontsGlobal.h6,
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: Text(
-                L(LanguageCodes.isNotSureTextInfo.toString()),
-                style: FontsGlobal.h6,
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: Text(
-                L(LanguageCodes.isSureTextInfo.toString()),
-                style: FontsGlobal.h6,
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

@@ -8,15 +8,25 @@ List<types.Message> convertAskChatModelToMessage(
   for (int i = 0; i < chatHistoriesResult.length; i++) {
     final author = types.User(
         imageUrl:
-            "https://static.vecteezy.com/system/resources/previews/004/996/790/non_2x/robot-chatbot-icon-sign-free-vector.jpg",
+            "https://imgtr.ee/images/2023/10/06/6f9c673cf19a9e7327c6c8caba4b6b35.png",
         id: chatHistoriesResult[i].role,
         firstName: chatHistoriesResult[i].role);
-    final message = types.TextMessage(
+    // final message = types.TextMessage(
+    //     author: author,
+    //     createdAt: 1655648401000,
+    //     id: const Uuid().v4(),
+    //     type: types.MessageType.text,
+    //     text: chatHistoriesResult[i].content);
+    final message = types.CustomMessage(
         author: author,
-        createdAt: 1655648401000,
         id: const Uuid().v4(),
-        type: types.MessageType.text,
-        text: chatHistoriesResult[i].content);
+        type: types.MessageType.custom,
+        repliedMessage: types.TextMessage(
+            author: author,
+            createdAt: 1655648401000,
+            id: const Uuid().v4(),
+            type: types.MessageType.text,
+            text: chatHistoriesResult[i].content));
     messages.add(message);
   }
   return messages;
