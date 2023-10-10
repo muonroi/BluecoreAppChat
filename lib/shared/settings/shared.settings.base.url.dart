@@ -3,6 +3,8 @@ class BaseApi {
   static const String baseUrl = "https://admin-apis-test.bluecore.vn/";
   static const String baseApi = "${baseUrl}api/services/app/";
   static const String authenticate = "${baseUrl}api/TokenAuth/Authenticate";
+  static const String renewToken =
+      "${baseUrl}api/TokenAuth/RefreshToken?refreshToken=%s";
   static const String sendPassword = "Account/SendPasswordResetCode";
   static const String modelChatForTenant = "DataAssistant/GetListConversations";
   static const String getChatHistories =
@@ -13,5 +15,6 @@ class BaseApi {
   static const String removeAllChat = "DataAssistant/DeleteAllConversations";
   static const String changeNameChat =
       "DataAssistant/UpdateConversationName?conversationId=%s&newName=%s";
-  static const String chatUrl = "${baseUrl}signalr-dataAssistantHub";
+  static const String chatUrl =
+      "${baseUrl}signalr-dataAssistantHub?enc_auth_token=%s";
 }

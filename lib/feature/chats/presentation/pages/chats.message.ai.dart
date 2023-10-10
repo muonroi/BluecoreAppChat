@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:avatar_glow/avatar_glow.dart';
 import 'package:bluecore/core/localization/core.language_code.dart';
 import 'package:bluecore/core/signalr/signalr.central.dart';
 import 'package:bluecore/feature/accounts/presentation/pages/account.signin.page.dart';
@@ -12,6 +13,7 @@ import 'package:bluecore/shared/models/model.divider.dart';
 import 'package:bluecore/shared/settings/shared.settings.color.dart';
 import 'package:bluecore/shared/settings/shared.settings.dart';
 import 'package:bluecore/shared/settings/shared.settings.font.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,10 +23,9 @@ import 'package:flutter_link_previewer/flutter_link_previewer.dart'
     show regexLink;
 import 'package:flutter_parsed_text/flutter_parsed_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:signalr_netcore/http_connection_options.dart';
 import 'package:signalr_netcore/hub_connection.dart';
 import 'package:signalr_netcore/hub_connection_builder.dart';
-import 'package:signalr_netcore/ihub_protocol.dart';
+import 'package:sprintf/sprintf.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import 'package:bluecore/feature/chats/settings/setting.chat.dart';
@@ -48,23 +49,31 @@ class _MessageAiPageState extends State<MessageAiPage> {
     _currentIndex = -1;
     _chatRepository = ChatRepository();
     status = '';
+    _textEditingController = TextEditingController();
     _hubConnection =
         HubConnectionBuilder().withUrl(SignalrCentral.chatStatus).build();
     _initSharedPreferences().then((value) {
       _hubConnection = HubConnectionBuilder()
-          .withUrl(SignalrCentral.chatStatus,
-              options: HttpConnectionOptions(
-                  headers: setHeader(),
-                  accessTokenFactory: () async {
-                    var sharedPreferences =
-                        await SharedPreferences.getInstance();
-                    return sharedPreferences
-                        .getString(KeyToken.accessToken.name)!;
-                  }))
-          .withAutomaticReconnect(retryDelays: [30000]).build();
+          .withUrl(
+              sprintf(SignalrCentral.chatStatus, [
+                Uri.encodeComponent(
+                    _sharedPreferences.getString(KeyToken.encToken.name)!)
+              ]),
+              options: SignalrCentral.httpConnectionOptions)
+          .withAutomaticReconnect(retryDelays: [5000]).build();
       initHubAndListenStatus();
+      _hubConnection.onclose(({error}) {
+        debugPrint(error.toString());
+        _hubConnection.onreconnecting(({error}) {
+          showInfoSnackBar(context, 'reconnecting...');
+        });
+        _hubConnection.onreconnected(({connectionId}) {
+          showInfoSnackBar(context, 'reconnected');
+        });
+      });
     });
     super.initState();
+    _speech = stt.SpeechToText();
   }
 
   @override
@@ -82,7 +91,7 @@ class _MessageAiPageState extends State<MessageAiPage> {
     });
   }
 
-  void _handleSendPressed(types.PartialText message) {
+  void _handleSendPressed(String message) {
     final textMessage = types.CustomMessage(
       author: _user,
       createdAt: DateTime.now().millisecondsSinceEpoch,
@@ -92,10 +101,10 @@ class _MessageAiPageState extends State<MessageAiPage> {
           createdAt: 1655648401000,
           id: const Uuid().v4(),
           type: types.MessageType.text,
-          text: message.text),
+          text: message),
     );
     _addMessage(textMessage);
-    _chatBloc.add(AskInfo(_conversationId, message.text));
+    _chatBloc.add(AskInfo(_conversationId, message));
   }
 
   Future<void> _initSharedPreferences() async {
@@ -105,16 +114,8 @@ class _MessageAiPageState extends State<MessageAiPage> {
     }
   }
 
-  MessageHeaders setHeader() {
-    final defaultHeaders = MessageHeaders();
-    defaultHeaders.setHeaderValue("enc_auth_token",
-        _sharedPreferences.getString(KeyToken.encToken.name)!);
-    return defaultHeaders;
-  }
-
   Future<void> initHubAndListenStatus() async {
     await _hubConnection.start();
-    await _hubConnection.invoke("JoinStatusGroup", args: ["getGroupStatus"]);
     debugPrint('start');
   }
 
@@ -131,6 +132,12 @@ class _MessageAiPageState extends State<MessageAiPage> {
   late String _conversationId;
   late int _currentIndex;
   late ChatRepository _chatRepository;
+  late TextEditingController _textEditingController;
+  late bool _isShowSend = false;
+  late stt.SpeechToText _speech;
+  late bool _isListening = false;
+  late String _text = '';
+  late double _confidence = 1.0;
   @override
   Widget build(BuildContext context) {
     Widget customMessageBuilder(types.CustomMessage customMessage,
@@ -169,7 +176,7 @@ class _MessageAiPageState extends State<MessageAiPage> {
                               IconButton(
                                   onPressed: () {
                                     Clipboard.setData(
-                                        ClipboardData(text: content.text));
+                                        ClipboardData(text: content.text!));
                                     Navigator.of(context).pop();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -185,10 +192,10 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                     );
                                   },
                                   icon: const Icon(Icons.copy)),
-                              regex.hasMatch(content.text)
+                              regex.hasMatch(content.text!)
                                   ? IconButton(
                                       onPressed: () {
-                                        prePreviewTable(context, content.text);
+                                        prePreviewTable(context, content.text!);
                                       },
                                       icon: const Icon(Icons.preview))
                                   : Container()
@@ -201,7 +208,7 @@ class _MessageAiPageState extends State<MessageAiPage> {
                 },
                 child: ParsedText(
                   onTap: () {},
-                  text: content.text,
+                  text: content.text!,
                   selectable: true,
                   style: isBot(content.author.id)
                       ? FontsGlobal.h5
@@ -609,10 +616,46 @@ class _MessageAiPageState extends State<MessageAiPage> {
             listener: (context, state) {
               Chat(
                 customMessageBuilder: customMessageBuilder,
-                customBottomWidget:
-                    state is AskChatLoadingState ? TextFormField() : null,
+                customBottomWidget: state is AskChatLoadingState
+                    ? Container()
+                    : SizedBox(
+                        child: TextFormField(
+                        onChanged: (value) {
+                          _isShowSend = value.isNotEmpty;
+                          setState(() {});
+                        },
+                        controller: _textEditingController,
+                        obscureText: false,
+                        decoration: !_isListening
+                            ? InputDecoration(
+                                border: const OutlineInputBorder(
+                                    borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(8.0),
+                                        bottomLeft: Radius.circular(8.0))),
+                                hintText: L(LanguageCodes
+                                    .enterContentMessageChatTextInfo
+                                    .toString()),
+                                hintStyle: FontsGlobal.h6
+                                    .copyWith(fontStyle: FontStyle.italic),
+                                prefixIcon: const Icon(Icons.message_outlined),
+                                suffixIcon: _isShowSend
+                                    ? IconButton(
+                                        onPressed: () {
+                                          _handleSendPressed(
+                                              _textEditingController.text);
+                                          _textEditingController.clear();
+                                          _isShowSend = false;
+                                        },
+                                        icon: const Icon(Icons.send),
+                                      )
+                                    : IconButton(
+                                        onPressed: _listen,
+                                        icon: const Icon(Icons.mic),
+                                      ))
+                            : null,
+                      )),
                 messages: messages.reversed.toList(),
-                onSendPressed: _handleSendPressed,
+                onSendPressed: (_) {},
                 user: _user,
                 showUserAvatars: true,
                 showUserNames: true,
@@ -620,28 +663,36 @@ class _MessageAiPageState extends State<MessageAiPage> {
             },
             child: BlocBuilder<ChatBloc, MyChatState>(
               builder: (context, state) {
-                _hubConnection.on('getStatus', (arguments) {
-                  if (state is AskChatLoadingState) {
-                    if (state.boolThinking) {
-                      _addMessage(types.TextMessage(
-                        author: _bot,
-                        id: 'bot-thinking',
-                        type: types.MessageType.text,
-                        text: arguments != null
-                            ? arguments.first.toString()
-                            : 'processing',
-                      ));
-                      state.boolThinking = false;
-                    }
+                if (state is AskChatLoadingState) {
+                  if (state.boolThinking) {
+                    _addMessage(types.TextMessage(
+                      author: _bot,
+                      id: 'bot-thinking',
+                      type: types.MessageType.text,
+                      text: L(LanguageCodes.respondingTextInfo.toString()),
+                    ));
+                    state.boolThinking = false;
                   }
-                });
-
+                  if (_hubConnection.state == HubConnectionState.Connected) {
+                    _hubConnection.on('getStatus', (arguments) {
+                      int indexToChange = messages.indexWhere(
+                          (element) => element.id == 'bot-thinking');
+                      var message =
+                          messages[indexToChange] as types.TextMessage;
+                      message.text = arguments!.first.toString();
+                      messages[indexToChange] = message;
+                      setState(() {});
+                    });
+                  } else if (_hubConnection.state ==
+                      HubConnectionState.Disconnected) {
+                    initHubAndListenStatus();
+                  }
+                }
                 if (state is AskChatLoadedState) {
                   messages
                       .removeWhere((element) => element.id == 'bot-thinking');
                   if (state.changeChatScreen) {
                     var answer = state.answerInfo.result!.answer;
-
                     _addMessage(types.CustomMessage(
                         author: _bot,
                         id: const Uuid().v4(),
@@ -674,12 +725,49 @@ class _MessageAiPageState extends State<MessageAiPage> {
                   return Chat(
                     customMessageBuilder: customMessageBuilder,
                     customBottomWidget: state is AskChatLoadingState
-                        ? TextFormField(
-                            readOnly: true,
-                          )
-                        : null,
+                        ? Container()
+                        : SizedBox(
+                            child: !_isListening
+                                ? TextFormField(
+                                    controller: _textEditingController,
+                                    onChanged: (value) {
+                                      _isShowSend = value.isNotEmpty;
+                                      setState(() {});
+                                    },
+                                    obscureText: false,
+                                    decoration: InputDecoration(
+                                        border: const OutlineInputBorder(
+                                            borderRadius: BorderRadius.only(
+                                                topLeft: Radius.circular(8.0),
+                                                bottomLeft:
+                                                    Radius.circular(8.0))),
+                                        hintText: L(LanguageCodes
+                                            .enterContentMessageChatTextInfo
+                                            .toString()),
+                                        hintStyle: FontsGlobal.h6.copyWith(
+                                            fontStyle: FontStyle.italic),
+                                        prefixIcon:
+                                            const Icon(Icons.message_outlined),
+                                        suffixIcon: _isShowSend
+                                            ? IconButton(
+                                                onPressed: () {
+                                                  _handleSendPressed(
+                                                      _textEditingController
+                                                          .text);
+                                                  _textEditingController
+                                                      .clear();
+                                                  _isShowSend = false;
+                                                },
+                                                icon: const Icon(Icons.send),
+                                              )
+                                            : IconButton(
+                                                onPressed: _listen,
+                                                icon: const Icon(Icons.mic),
+                                              )),
+                                  )
+                                : null),
                     messages: messages.reversed.toList(),
-                    onSendPressed: _handleSendPressed,
+                    onSendPressed: (_) {},
                     user: _user,
                     showUserAvatars: true,
                     showUserNames: true,
@@ -687,10 +775,49 @@ class _MessageAiPageState extends State<MessageAiPage> {
                 }
                 return Chat(
                   customMessageBuilder: customMessageBuilder,
-                  customBottomWidget:
-                      state is AskChatLoadingState ? TextFormField() : null,
+                  customBottomWidget: state is AskChatLoadingState
+                      ? Container()
+                      : SizedBox(
+                          child: !_isListening
+                              ? TextFormField(
+                                  onChanged: (value) {
+                                    _isShowSend = value.isNotEmpty;
+                                    setState(() {});
+                                  },
+                                  controller: _textEditingController,
+                                  obscureText: false,
+                                  decoration: InputDecoration(
+                                      border: const OutlineInputBorder(
+                                          borderRadius: BorderRadius.only(
+                                              topLeft: Radius.circular(8.0),
+                                              bottomLeft:
+                                                  Radius.circular(8.0))),
+                                      hintText: L(LanguageCodes
+                                          .enterContentMessageChatTextInfo
+                                          .toString()),
+                                      hintStyle: FontsGlobal.h6.copyWith(
+                                          fontStyle: FontStyle.italic),
+                                      prefixIcon:
+                                          const Icon(Icons.message_outlined),
+                                      suffixIcon: _isShowSend
+                                          ? IconButton(
+                                              onPressed: () {
+                                                _handleSendPressed(
+                                                    _textEditingController
+                                                        .text);
+                                                _textEditingController.clear();
+                                                _isShowSend = false;
+                                              },
+                                              icon: const Icon(Icons.send),
+                                            )
+                                          : IconButton(
+                                              onPressed: _listen,
+                                              icon: const Icon(Icons.mic),
+                                            )),
+                                )
+                              : null),
                   messages: messages.reversed.toList(),
-                  onSendPressed: _handleSendPressed,
+                  onSendPressed: (_) {},
                   user: _user,
                   showUserAvatars: true,
                   showUserNames: true,
@@ -698,6 +825,57 @@ class _MessageAiPageState extends State<MessageAiPage> {
               },
             ),
           ),
-        ));
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: _isListening
+            ? AvatarGlow(
+                animate: _isListening,
+                glowColor: ColorsGlobal.mainColor,
+                endRadius: 75.0,
+                duration: const Duration(milliseconds: 2000),
+                repeat: true,
+                showTwoGlows: true,
+                repeatPauseDuration: const Duration(milliseconds: 100),
+                child: FloatingActionButton(
+                  onPressed: _stopListening,
+                  child: _isListening
+                      ? const Icon(Icons.mic)
+                      : const Icon(Icons.mic_none),
+                ),
+              )
+            : null);
+  }
+
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) => debugPrint('onStatus: $val'),
+        onError: (val) => debugPrint('onError: $val'),
+      );
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          localeId: 'vi_VN',
+          onResult: (val) => setState(() {
+            _text = val.recognizedWords;
+            if (val.hasConfidenceRating && val.confidence > 0) {
+              _confidence = val.confidence;
+            }
+            _textEditingController.text = _text;
+            _isShowSend = true;
+          }),
+        );
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
+  }
+
+  void _stopListening() {
+    _speech.stop();
+    setState(() {
+      _isListening = false;
+    });
   }
 }

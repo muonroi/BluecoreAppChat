@@ -28,6 +28,9 @@ dependencies:
   flutter_link_previewer: ^3.2.2
   url_launcher: ^6.1.14
   flutter_markdown: ^0.6.18
+  top_snackbar_flutter: ^3.1.0
+  speech_to_text: ^6.3.0
+  avatar_glow: ^2.0.2
   
 dev_dependencies:
   flutter_test:

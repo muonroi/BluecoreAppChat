@@ -4,6 +4,9 @@ import 'package:bluecore/shared/settings/shared.settings.color.dart';
 import 'package:bluecore/shared/settings/shared.settings.dart';
 import 'package:bluecore/shared/settings/shared.settings.font.dart';
 import 'package:flutter/material.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
@@ -95,4 +98,20 @@ void prePreviewTable(BuildContext context, String text) {
           ),
         );
       });
+}
+
+void showInfoSnackBar(BuildContext context, String message) {
+  showTopSnackBar(
+      Overlay.of(context),
+      message.contains("reconnected")
+          ? const CustomSnackBar.success(
+              message: "connected!",
+            )
+          : message.contains("reconnecting...")
+              ? CustomSnackBar.info(
+                  message: message,
+                )
+              : CustomSnackBar.error(
+                  message: message,
+                ));
 }
