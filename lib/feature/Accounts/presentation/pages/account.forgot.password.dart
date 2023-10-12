@@ -35,14 +35,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 30.0),
                   child: Text(
-                    L(LanguageCodes.forgotPasswordTextInfo.toString()),
+                    L(context, LanguageCodes.forgotPasswordTextInfo.toString()),
                     style: FontsGlobal.h4,
                   ),
                 ),
               ),
               SizedBox(
                 child: Text(
-                  L(LanguageCodes.forgotPasswordMoreInfoTextInfo.toString()),
+                  L(context,
+                      LanguageCodes.forgotPasswordMoreInfoTextInfo.toString()),
                   style: FontsGlobal.h6,
                 ),
               ),
@@ -55,7 +56,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         color: ColorsGlobal.mainColor,
                       ),
                       border: const UnderlineInputBorder(),
-                      labelText: L(LanguageCodes.usernameTextInfo.toString())),
+                      labelText: L(
+                          context, LanguageCodes.usernameTextInfo.toString())),
                 ),
               ),
               Row(
@@ -72,7 +74,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: ColorsGlobal.whiteColor,
                       ),
-                      text: L(LanguageCodes.backInfoTextInfo.toString()),
+                      text:
+                          L(context, LanguageCodes.backInfoTextInfo.toString()),
                       textStyle: FontsGlobal.h5
                           .copyWith(color: ColorsGlobal.textColor),
                     ),
@@ -93,14 +96,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                 builder: (builder) {
                                   return AlertDialog(
                                     title: Text(
-                                      L(LanguageCodes.notificationTextInfo
-                                          .toString()),
+                                      L(
+                                          context,
+                                          LanguageCodes.notificationTextInfo
+                                              .toString()),
                                       style: FontsGlobal.h3,
                                     ),
                                     content: Text(
-                                      L(LanguageCodes
-                                          .sendPasswordSuccessTextInfo
-                                          .toString()),
+                                      L(
+                                          context,
+                                          LanguageCodes
+                                              .sendPasswordSuccessTextInfo
+                                              .toString()),
                                       style: FontsGlobal.h5,
                                     ),
                                     actions: <Widget>[
@@ -117,8 +124,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                               borderRadius:
                                                   BorderRadius.circular(30.0)),
                                           child: Text(
-                                              L(LanguageCodes.ignoreTextInfo
-                                                  .toString()),
+                                              L(
+                                                  context,
+                                                  LanguageCodes.ignoreTextInfo
+                                                      .toString()),
                                               style: FontsGlobal.h5.copyWith(
                                                   color:
                                                       ColorsGlobal.whiteColor)),
@@ -136,7 +145,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: ColorsGlobal.mainColor,
                       ),
-                      text: L(LanguageCodes.submitTextInfo.toString()),
+                      text: L(context, LanguageCodes.submitTextInfo.toString()),
                       textStyle: FontsGlobal.h5
                           .copyWith(color: ColorsGlobal.whiteColor),
                     ),

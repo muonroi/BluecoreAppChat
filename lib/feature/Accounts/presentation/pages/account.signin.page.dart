@@ -76,7 +76,8 @@ class _AccountPageState extends State<AccountPage> {
                   ? Container(
                       margin: const EdgeInsets.only(top: 30),
                       child: Text(
-                        L(LanguageCodes.invalidAccountTextInfo.toString()),
+                        L(context,
+                            LanguageCodes.invalidAccountTextInfo.toString()),
                         style: FontsGlobal.h5
                             .copyWith(fontSize: 13, color: Colors.red),
                       ),
@@ -96,8 +97,8 @@ class _AccountPageState extends State<AccountPage> {
                           color: ColorsGlobal.mainColor,
                         ),
                         border: const UnderlineInputBorder(),
-                        labelText:
-                            L(LanguageCodes.usernameTextInfo.toString())),
+                        labelText: L(context,
+                            LanguageCodes.usernameTextInfo.toString())),
                   ),
                 ),
               ),
@@ -115,7 +116,8 @@ class _AccountPageState extends State<AccountPage> {
                           color: ColorsGlobal.mainColor,
                         ),
                         border: const UnderlineInputBorder(),
-                        labelText: L(LanguageCodes.passwordTextInfo.toString()),
+                        labelText: L(
+                            context, LanguageCodes.passwordTextInfo.toString()),
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {
@@ -150,7 +152,7 @@ class _AccountPageState extends State<AccountPage> {
                           },
                         ),
                         Text(
-                          L(LanguageCodes.rememberTextInfo.toString()),
+                          L(context, LanguageCodes.rememberTextInfo.toString()),
                           style: FontsGlobal.h5.copyWith(fontSize: 16),
                         ),
                       ],
@@ -170,7 +172,10 @@ class _AccountPageState extends State<AccountPage> {
                                         const ForgotPasswordPage()));
                           },
                           child: Text(
-                            L(LanguageCodes.forgotPasswordTextInfo.toString()),
+                            L(
+                                context,
+                                LanguageCodes.forgotPasswordTextInfo
+                                    .toString()),
                             style: FontsGlobal.h5.copyWith(
                                 fontWeight: FontWeight.w900,
                                 color: ColorsGlobal.mainColor),
@@ -246,12 +251,13 @@ class _AccountPageState extends State<AccountPage> {
                 padding: const EdgeInsets.symmetric(vertical: 32.0),
                 child: RichText(
                   text: TextSpan(
-                      text: L(LanguageCodes.noAccountTextInfo.toString()),
+                      text: L(
+                          context, LanguageCodes.noAccountTextInfo.toString()),
                       style: FontsGlobal.h5,
                       children: [
                         TextSpan(
                             text:
-                                " ${L(LanguageCodes.initAccountTextInfo.toString())}",
+                                " ${L(context, LanguageCodes.initAccountTextInfo.toString())}",
                             style: FontsGlobal.h5.copyWith(
                                 fontWeight: FontWeight.w900,
                                 color: ColorsGlobal.mainColor),

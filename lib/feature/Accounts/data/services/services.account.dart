@@ -1,6 +1,7 @@
 import 'package:bluecore/feature/accounts/data/models/model.authenticate.dart';
 import 'package:bluecore/shared/models/model.baseoutput.dart';
 import 'package:bluecore/shared/settings/shared.settings.base.url.dart';
+import 'package:bluecore/shared/settings/shared.settings.dart';
 import 'package:dio/dio.dart';
 
 class ServiceAccount {
@@ -65,6 +66,41 @@ class ServiceAccount {
           headers: headers));
       final response = await dio.post(
         BaseApi.sendPassword,
+        data: data,
+      );
+      if (response.statusCode == 200) {
+        return baseOutputFromJson(response.data.toString());
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.badResponse) {
+        return BaseOutputModel(
+          result: null,
+          targetUrl: null,
+          success: false,
+          error: null,
+          unAuthorizedRequest: false,
+          abp: false,
+        );
+      }
+    }
+    return BaseOutputModel(
+      result: null,
+      targetUrl: null,
+      success: false,
+      error: null,
+      unAuthorizedRequest: false,
+      abp: false,
+    );
+  }
+
+  Future<BaseOutputModel> changeLanguage(String code) async {
+    try {
+      Map<String, dynamic> data = {
+        "languageName": code,
+      };
+      var dio = await getBaseApi();
+      final response = await dio.post(
+        BaseApi.changeLanguage,
         data: data,
       );
       if (response.statusCode == 200) {

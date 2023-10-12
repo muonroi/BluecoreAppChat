@@ -1,27 +1,29 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:avatar_glow/avatar_glow.dart';
+import 'package:bluecore/core/localization/core.language.dart';
 import 'package:bluecore/core/localization/core.language_code.dart';
 import 'package:bluecore/core/signalr/signalr.central.dart';
+import 'package:bluecore/feature/accounts/data/repository/repository.account.dart';
 import 'package:bluecore/feature/accounts/presentation/pages/account.signin.page.dart';
 import 'package:bluecore/feature/chats/bloc/GetAllChatHistories/get_all_chat_histories_bloc.dart';
 import 'package:bluecore/feature/chats/bloc/GetHistoriesBloc/histories_chat_bloc.dart';
 import 'package:bluecore/feature/chats/data/models/chats.message.custom.dart';
 import 'package:bluecore/feature/chats/data/models/chats.user.model.dart';
 import 'package:bluecore/feature/chats/data/repository/repository.chats.dart';
+import 'package:bluecore/feature/chats/provider/provider.chat.dart';
+import 'package:bluecore/feature/chats/settings/enums/cache.enums.dart';
 import 'package:bluecore/shared/models/model.divider.dart';
 import 'package:bluecore/shared/settings/shared.settings.color.dart';
 import 'package:bluecore/shared/settings/shared.settings.dart';
 import 'package:bluecore/shared/settings/shared.settings.font.dart';
+import 'package:bluecore/shared/settings/shared.settings.image.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-import 'package:flutter_link_previewer/flutter_link_previewer.dart'
-    show regexLink;
-import 'package:flutter_parsed_text/flutter_parsed_text.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signalr_netcore/hub_connection.dart';
 import 'package:signalr_netcore/hub_connection_builder.dart';
@@ -60,18 +62,15 @@ class _MessageAiPageState extends State<MessageAiPage> {
                     _sharedPreferences.getString(KeyToken.encToken.name)!)
               ]),
               options: SignalrCentral.httpConnectionOptions)
-          .withAutomaticReconnect(retryDelays: [5000]).build();
+          .withAutomaticReconnect(retryDelays: [25000]).build();
       initHubAndListenStatus();
       _hubConnection.onclose(({error}) {
         debugPrint(error.toString());
-        _hubConnection.onreconnecting(({error}) {
-          showInfoSnackBar(context, 'reconnecting...');
-        });
-        _hubConnection.onreconnected(({connectionId}) {
-          showInfoSnackBar(context, 'reconnected');
-        });
+        _hubConnection.onreconnecting(({error}) {});
+        _hubConnection.onreconnected(({connectionId}) {});
       });
     });
+    _accountRepository = AccountRepository('', '');
     super.initState();
     _speech = stt.SpeechToText();
   }
@@ -137,7 +136,7 @@ class _MessageAiPageState extends State<MessageAiPage> {
   late stt.SpeechToText _speech;
   late bool _isListening = false;
   late String _text = '';
-  late double _confidence = 1.0;
+  late AccountRepository _accountRepository;
   @override
   Widget build(BuildContext context) {
     Widget customMessageBuilder(types.CustomMessage customMessage,
@@ -156,152 +155,164 @@ class _MessageAiPageState extends State<MessageAiPage> {
           child: Column(
             children: [
               GestureDetector(
-                onDoubleTap: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    builder: (BuildContext context) {
-                      RegExp regex = RegExp(
-                        r'\|(?:([^\r\n|]*)\|)+\r?\n\|(?:(:?-+:?)\|)+\r?\n(\|(?:([^\r\n|]*)\|)+\r?\n)+',
-                        multiLine: true,
-                      );
-
-                      return SizedBox(
-                        height: getPercentageOfDevice(context, expectHeight: 80)
-                            .height,
-                        child: Center(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              IconButton(
-                                  onPressed: () {
-                                    Clipboard.setData(
-                                        ClipboardData(text: content.text!));
-                                    Navigator.of(context).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        backgroundColor: ColorsGlobal.mainColor,
-                                        content: SizedBox(
-                                            width: getPercentageOfDevice(
-                                                    context,
-                                                    expectWidth: 50)
-                                                .width,
-                                            child: const Text('Copied')),
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.copy)),
-                              regex.hasMatch(content.text!)
-                                  ? IconButton(
-                                      onPressed: () {
-                                        prePreviewTable(context, content.text!);
-                                      },
-                                      icon: const Icon(Icons.preview))
-                                  : Container()
-                            ],
+                  onDoubleTap: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return SizedBox(
+                          height:
+                              getPercentageOfDevice(context, expectHeight: 80)
+                                  .height,
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: menuWidget(context, content.text!),
+                            ),
                           ),
-                        ),
+                        );
+                      },
+                    );
+                  },
+                  child: MarkdownBody(
+                    onTapLink: (text, href, title) async {
+                      await launchUrl(Uri.parse(href!));
+                    },
+                    onTapText: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return SizedBox(
+                            height:
+                                getPercentageOfDevice(context, expectHeight: 80)
+                                    .height,
+                            child: Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: menuWidget(context, content.text!),
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
-                  );
-                },
-                child: ParsedText(
-                  onTap: () {},
-                  text: content.text!,
-                  selectable: true,
-                  style: isBot(content.author.id)
-                      ? FontsGlobal.h5
-                      : FontsGlobal.h5.copyWith(color: ColorsGlobal.whiteColor),
-                  regexOptions:
-                      const RegexOptions(multiLine: true, dotAll: true),
-                  parse: [
-                    MatchText(
-                      pattern:
-                          '\\|(?:([^\r\n|]*)\\|)+\r?\n\\|(?:(:?-+:?)\\|)+\r?\n(\\|(?:([^\r\n|]*)\\|)+\r?\n)+',
-                      onTap: (url) {
-                        prePreviewTable(context, url);
-                      },
-                      style: FontsGlobal.h5,
-                      renderWidget: renderMarkdownWidget,
+                    selectable: true,
+                    data: content.text!,
+                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                        .copyWith(
+                      p: isBot(content.author.id)
+                          ? const TextStyle(color: ColorsGlobal.textColor)
+                          : const TextStyle(color: ColorsGlobal.whiteColor),
+                      textScaleFactor: 1,
                     ),
-                    MatchText(
-                      pattern: regexLink,
-                      onTap: (url) async {
-                        debugPrint(url);
-                        if (await canLaunchUrl(Uri.parse(url))) {
-                          await launchUrl(Uri.parse(url));
-                        }
-                      },
-                      style: FontsGlobal.h5
-                          .copyWith(decoration: TextDecoration.underline),
-                      renderWidget: renderMarkdownWidget,
-                    ),
-                    MatchText(
-                      pattern: '(\\*\\*|\\*)(.*?)(\\*\\*|\\*)',
-                      onTap: (_) {},
-                      style:
-                          FontsGlobal.h5.copyWith(fontWeight: FontWeight.w700),
-                      renderText: (
-                          {required String str, required String pattern}) {
-                        return {
-                          'display': str.replaceAll(RegExp('(\\*\\*|\\*)'), '')
-                        };
-                      },
-                    ),
-                    MatchText(
-                      pattern: "\\[([^\\]]*)\\]\\(.*\\)",
-                      onTap: (str) async {
-                        RegExp regex = RegExp(r'\[.*\]\((.*)\)');
-                        Match match = regex.firstMatch(str)!;
-                        if (await canLaunchUrl(Uri.parse(match.group(1)!))) {
-                          await launchUrl(Uri.parse(match.group(1)!));
-                        }
-                      },
-                      style:
-                          FontsGlobal.h5.copyWith(fontWeight: FontWeight.w700),
-                      renderText: (
-                          {required String str, required String pattern}) {
-                        return {
-                          'display': str.replaceAll(RegExp('\\(.*\\)'), '')
-                        };
-                      },
-                    ),
-                    MatchText(
-                      pattern: '_(.*?)_',
-                      onTap: (_) {},
-                      style:
-                          FontsGlobal.h5.copyWith(fontStyle: FontStyle.italic),
-                      renderText: (
-                          {required String str, required String pattern}) {
-                        return {'display': str.replaceAll('_', '')};
-                      },
-                    ),
-                    MatchText(
-                      pattern: '~(.*?)~',
-                      onTap: (_) {},
-                      style: FontsGlobal.h5.copyWith(
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                      renderText: (
-                          {required String str, required String pattern}) {
-                        return {'display': str.replaceAll('~', '')};
-                      },
-                    ),
-                    MatchText(
-                      pattern: '`(.*?)`',
-                      onTap: (_) {},
-                      style: FontsGlobal.h5.copyWith(
-                        fontFamily: Platform.isIOS ? 'Courier' : 'monospace',
-                      ),
-                      renderText: (
-                          {required String str, required String pattern}) {
-                        return {'display': str.replaceAll('`', '')};
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                  )
+                  // : ParsedText(
+                  //     onTap: () {},
+                  //     text: content.text!,
+                  //     selectable: true,
+                  //     style: isBot(content.author.id)
+                  //         ? FontsGlobal.h5
+                  //         : FontsGlobal.h5
+                  //             .copyWith(color: ColorsGlobal.whiteColor),
+                  //     regexOptions:
+                  //         const RegexOptions(multiLine: true, dotAll: true),
+                  //     parse: [
+                  //       MatchText(
+                  //         pattern:
+                  //             '\\|(?:([^\r\n|]*)\\|)+\r?\n\\|(?:(:?-+:?)\\|)+\r?\n(\\|(?:([^\r\n|]*)\\|)+\r?\n)+',
+                  //         onTap: (url) {
+                  //           prePreviewTable(context, url);
+                  //         },
+                  //         style: FontsGlobal.h5,
+                  //         renderWidget: renderMarkdownWidget,
+                  //       ),
+                  //       MatchText(
+                  //         pattern: regexLink,
+                  //         onTap: (url) async {
+                  //           debugPrint(url);
+                  //           if (await canLaunchUrl(Uri.parse(url))) {
+                  //             await launchUrl(Uri.parse(url));
+                  //           }
+                  //         },
+                  //         style: FontsGlobal.h5
+                  //             .copyWith(decoration: TextDecoration.underline),
+                  //         renderWidget: renderMarkdownWidget,
+                  //       ),
+                  //       MatchText(
+                  //         pattern: '(\\*\\*|\\*)(.*?)(\\*\\*|\\*)',
+                  //         onTap: (_) {},
+                  //         style: FontsGlobal.h5
+                  //             .copyWith(fontWeight: FontWeight.w700),
+                  //         renderText: (
+                  //             {required String str,
+                  //             required String pattern}) {
+                  //           return {
+                  //             'display':
+                  //                 str.replaceAll(RegExp('(\\*\\*|\\*)'), '')
+                  //           };
+                  //         },
+                  //       ),
+                  //       MatchText(
+                  //         pattern: "\\[([^\\]]*)\\]\\(.*\\)",
+                  //         onTap: (str) async {
+                  //           RegExp regex = RegExp(r'\[.*\]\((.*)\)');
+                  //           Match match = regex.firstMatch(str)!;
+                  //           if (await canLaunchUrl(
+                  //               Uri.parse(match.group(1)!))) {
+                  //             await launchUrl(Uri.parse(match.group(1)!));
+                  //           }
+                  //         },
+                  //         style: FontsGlobal.h5
+                  //             .copyWith(fontWeight: FontWeight.w700),
+                  //         renderText: (
+                  //             {required String str,
+                  //             required String pattern}) {
+                  //           return {
+                  //             'display':
+                  //                 str.replaceAll(RegExp('\\(.*\\)'), '')
+                  //           };
+                  //         },
+                  //       ),
+                  //       MatchText(
+                  //         pattern: '_(.*?)_',
+                  //         onTap: (_) {},
+                  //         style: FontsGlobal.h5
+                  //             .copyWith(fontStyle: FontStyle.italic),
+                  //         renderText: (
+                  //             {required String str,
+                  //             required String pattern}) {
+                  //           return {'display': str.replaceAll('_', '')};
+                  //         },
+                  //       ),
+                  //       MatchText(
+                  //         pattern: '~(.*?)~',
+                  //         onTap: (_) {},
+                  //         style: FontsGlobal.h5.copyWith(
+                  //           decoration: TextDecoration.lineThrough,
+                  //         ),
+                  //         renderText: (
+                  //             {required String str,
+                  //             required String pattern}) {
+                  //           return {'display': str.replaceAll('~', '')};
+                  //         },
+                  //       ),
+                  //       MatchText(
+                  //         pattern: '`(.*?)`',
+                  //         onTap: (_) {},
+                  //         style: FontsGlobal.h5.copyWith(
+                  //           fontFamily:
+                  //               Platform.isIOS ? 'Courier' : 'monospace',
+                  //         ),
+                  //         renderText: (
+                  //             {required String str,
+                  //             required String pattern}) {
+                  //           return {'display': str.replaceAll('`', '')};
+                  //         },
+                  //       ),
+                  //     ],
+                  //   ),
+                  ),
             ],
           ),
         ),
@@ -315,8 +326,10 @@ class _MessageAiPageState extends State<MessageAiPage> {
           title: Title(
               color: ColorsGlobal.whiteColor,
               child: Text(
-                L(LanguageCodes.supportedCustomerMessageChatTextInfo
-                    .toString()),
+                L(
+                    context,
+                    LanguageCodes.supportedCustomerMessageChatTextInfo
+                        .toString()),
                 style: FontsGlobal.h5,
                 textAlign: TextAlign.center,
               )),
@@ -324,7 +337,7 @@ class _MessageAiPageState extends State<MessageAiPage> {
           backgroundColor: ColorsGlobal.whiteColor,
           actions: [
             IconButton(
-                tooltip: L(LanguageCodes.newChatTextInfo.toString()),
+                tooltip: L(context, LanguageCodes.newChatTextInfo.toString()),
                 onPressed: () {
                   setState(() {
                     messages.clear();
@@ -373,19 +386,117 @@ class _MessageAiPageState extends State<MessageAiPage> {
                     child: Scaffold(
                       appBar: AppBar(
                         title: Text(
-                          L(LanguageCodes.historiesMessageChatTextInfo
-                              .toString()),
+                          L(
+                              context,
+                              LanguageCodes.historiesMessageChatTextInfo
+                                  .toString()),
                           style: FontsGlobal.h4,
                         ),
                         actions: [
+                          Consumer<ChatProvider>(
+                            builder: (BuildContext context, ChatProvider value,
+                                Widget? child) {
+                              return IconButton(
+                                  tooltip: L(context,
+                                      LanguageCodes.logoutTextInfo.toString()),
+                                  onPressed: () async {
+                                    showMenu(
+                                        context: context,
+                                        position: const RelativeRect.fromLTRB(
+                                            100, 80, 90, 10),
+                                        items: [
+                                          PopupMenuItem<String>(
+                                            value: Languages.en,
+                                            child: Center(
+                                              child: IconButton(
+                                                  onPressed: () async {
+                                                    setState(() {
+                                                      value.changeLanguage =
+                                                          Languages.en;
+                                                    });
+                                                    await _accountRepository
+                                                        .changeLanguage(
+                                                            Languages.en);
+                                                    _sharedPreferences
+                                                        .setString(
+                                                            CacheChatEnum
+                                                                .currentLanguage
+                                                                .name,
+                                                            Languages.en);
+                                                  },
+                                                  icon: SizedBox(
+                                                      width:
+                                                          getPercentageOfDevice(
+                                                                  context,
+                                                                  expectWidth:
+                                                                      50)
+                                                              .width,
+                                                      height:
+                                                          getPercentageOfDevice(
+                                                                  context,
+                                                                  expectHeight:
+                                                                      50)
+                                                              .height,
+                                                      child: Image.asset(
+                                                          ImagesGlobal.us2x,
+                                                          fit: BoxFit.fill))),
+                                            ),
+                                          ),
+                                          PopupMenuItem<String>(
+                                            value: Languages.vi,
+                                            child: Center(
+                                              child: IconButton(
+                                                  onPressed: () async {
+                                                    setState(() {
+                                                      value.changeLanguage =
+                                                          Languages.vi;
+                                                    });
+                                                    await _accountRepository
+                                                        .changeLanguage(
+                                                            Languages.vi);
+                                                    _sharedPreferences
+                                                        .setString(
+                                                            CacheChatEnum
+                                                                .currentLanguage
+                                                                .name,
+                                                            Languages.vi);
+                                                  },
+                                                  icon: SizedBox(
+                                                      width:
+                                                          getPercentageOfDevice(
+                                                                  context,
+                                                                  expectWidth:
+                                                                      50)
+                                                              .width,
+                                                      height:
+                                                          getPercentageOfDevice(
+                                                                  context,
+                                                                  expectHeight:
+                                                                      50)
+                                                              .height,
+                                                      child: Image.asset(
+                                                          ImagesGlobal.vi2x,
+                                                          fit: BoxFit.fill))),
+                                            ),
+                                          ),
+                                        ]);
+                                  },
+                                  icon: const Icon(
+                                    Icons.language_outlined,
+                                    color: ColorsGlobal.mainColor,
+                                  ));
+                            },
+                          ),
                           IconButton(
-                              tooltip:
-                                  L(LanguageCodes.logoutTextInfo.toString()),
+                              tooltip: L(context,
+                                  LanguageCodes.logoutTextInfo.toString()),
                               onPressed: () async {
                                 var userChoice = await showConfirmationDialog(
                                     context,
-                                    L(LanguageCodes.youSureLogoutTextInfo
-                                        .toString()),
+                                    L(
+                                        context,
+                                        LanguageCodes.youSureLogoutTextInfo
+                                            .toString()),
                                     null);
                                 userChoice = userChoice ?? false;
                                 if (userChoice && mounted) {
@@ -408,9 +519,11 @@ class _MessageAiPageState extends State<MessageAiPage> {
                       body: state.chatTenantModel.result.isEmpty
                           ? Center(
                               child: Text(
-                                L(LanguageCodes
-                                    .emptyHistoriesMessageChatTextInfo
-                                    .toString()),
+                                L(
+                                    context,
+                                    LanguageCodes
+                                        .emptyHistoriesMessageChatTextInfo
+                                        .toString()),
                                 style: FontsGlobal.h5,
                               ),
                             )
@@ -432,17 +545,22 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                             children: [
                                               index == 0
                                                   ? IconButton(
-                                                      tooltip: L(LanguageCodes
-                                                          .removeAllMessageChatTextInfo
-                                                          .toString()),
+                                                      tooltip: L(
+                                                          context,
+                                                          LanguageCodes
+                                                              .removeAllMessageChatTextInfo
+                                                              .toString()),
                                                       onPressed: () async {
-                                                        bool? userChoice =
-                                                            await showConfirmationDialog(
+                                                        bool? userChoice = await showConfirmationDialog(
+                                                            context,
+                                                            L(
                                                                 context,
-                                                                L(LanguageCodes
+                                                                LanguageCodes
                                                                     .isConfirmTextInfo
                                                                     .toString()),
-                                                                L(LanguageCodes
+                                                            L(
+                                                                context,
+                                                                LanguageCodes
                                                                     .removeAllMessageChatTextInfo
                                                                     .toString()));
                                                         userChoice =
@@ -511,9 +629,11 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                               ),
                                             ),
                                             IconButton(
-                                                tooltip: L(LanguageCodes
-                                                    .changeNameChatTextInfo
-                                                    .toString()),
+                                                tooltip: L(
+                                                    context,
+                                                    LanguageCodes
+                                                        .changeNameChatTextInfo
+                                                        .toString()),
                                                 onPressed: () {
                                                   if (_conversationId == '') {
                                                     showDialog(
@@ -521,9 +641,11 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                                         builder: (builder) {
                                                           return AlertDialog(
                                                             content: Text(
-                                                              L(LanguageCodes
-                                                                  .pleaseChooseChatIdTextInfo
-                                                                  .toString()),
+                                                              L(
+                                                                  context,
+                                                                  LanguageCodes
+                                                                      .pleaseChooseChatIdTextInfo
+                                                                      .toString()),
                                                               style: FontsGlobal
                                                                   .h6,
                                                             ),
@@ -560,19 +682,25 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                                   color: ColorsGlobal.mainColor,
                                                 )),
                                             IconButton(
-                                                tooltip: L(LanguageCodes
-                                                    .removeSingleChatTextInfo
-                                                    .toString()),
+                                                tooltip: L(
+                                                    context,
+                                                    LanguageCodes
+                                                        .removeSingleChatTextInfo
+                                                        .toString()),
                                                 onPressed: () async {
                                                   bool? userChoice =
                                                       await showConfirmationDialog(
                                                           context,
-                                                          L(LanguageCodes
-                                                              .isConfirmTextInfo
-                                                              .toString()),
-                                                          L(LanguageCodes
-                                                              .removeSingleChatTextInfo
-                                                              .toString()));
+                                                          L(
+                                                              context,
+                                                              LanguageCodes
+                                                                  .isConfirmTextInfo
+                                                                  .toString()),
+                                                          L(
+                                                              context,
+                                                              LanguageCodes
+                                                                  .removeSingleChatTextInfo
+                                                                  .toString()));
                                                   userChoice =
                                                       userChoice ?? false;
                                                   if (userChoice) {
@@ -632,9 +760,11 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                     borderRadius: BorderRadius.only(
                                         topLeft: Radius.circular(8.0),
                                         bottomLeft: Radius.circular(8.0))),
-                                hintText: L(LanguageCodes
-                                    .enterContentMessageChatTextInfo
-                                    .toString()),
+                                hintText: L(
+                                    context,
+                                    LanguageCodes
+                                        .enterContentMessageChatTextInfo
+                                        .toString()),
                                 hintStyle: FontsGlobal.h6
                                     .copyWith(fontStyle: FontStyle.italic),
                                 prefixIcon: const Icon(Icons.message_outlined),
@@ -663,13 +793,19 @@ class _MessageAiPageState extends State<MessageAiPage> {
             },
             child: BlocBuilder<ChatBloc, MyChatState>(
               builder: (context, state) {
+                if (state is ChatLoadingState) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
                 if (state is AskChatLoadingState) {
                   if (state.boolThinking) {
                     _addMessage(types.TextMessage(
                       author: _bot,
                       id: 'bot-thinking',
                       type: types.MessageType.text,
-                      text: L(LanguageCodes.respondingTextInfo.toString()),
+                      text: L(
+                          context, LanguageCodes.respondingTextInfo.toString()),
                     ));
                     state.boolThinking = false;
                   }
@@ -741,9 +877,11 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                                 topLeft: Radius.circular(8.0),
                                                 bottomLeft:
                                                     Radius.circular(8.0))),
-                                        hintText: L(LanguageCodes
-                                            .enterContentMessageChatTextInfo
-                                            .toString()),
+                                        hintText: L(
+                                            context,
+                                            LanguageCodes
+                                                .enterContentMessageChatTextInfo
+                                                .toString()),
                                         hintStyle: FontsGlobal.h6.copyWith(
                                             fontStyle: FontStyle.italic),
                                         prefixIcon:
@@ -792,9 +930,11 @@ class _MessageAiPageState extends State<MessageAiPage> {
                                               topLeft: Radius.circular(8.0),
                                               bottomLeft:
                                                   Radius.circular(8.0))),
-                                      hintText: L(LanguageCodes
-                                          .enterContentMessageChatTextInfo
-                                          .toString()),
+                                      hintText: L(
+                                          context,
+                                          LanguageCodes
+                                              .enterContentMessageChatTextInfo
+                                              .toString()),
                                       hintStyle: FontsGlobal.h6.copyWith(
                                           fontStyle: FontStyle.italic),
                                       prefixIcon:
@@ -858,9 +998,6 @@ class _MessageAiPageState extends State<MessageAiPage> {
           localeId: 'vi_VN',
           onResult: (val) => setState(() {
             _text = val.recognizedWords;
-            if (val.hasConfidenceRating && val.confidence > 0) {
-              _confidence = val.confidence;
-            }
             _textEditingController.text = _text;
             _isShowSend = true;
           }),

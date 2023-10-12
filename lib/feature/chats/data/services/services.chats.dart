@@ -1,4 +1,3 @@
-import 'package:bluecore/core/localization/core.language_code.dart';
 import 'package:bluecore/feature/chats/data/models/chats.ask.model.dart';
 import 'package:bluecore/feature/chats/data/models/chats.histories.model.dart';
 import 'package:bluecore/feature/chats/data/models/chats.tenant.model.dart';
@@ -10,7 +9,7 @@ import 'package:sprintf/sprintf.dart';
 import 'package:uuid/uuid.dart';
 
 class ServiceChats {
-  Future<ChatHistoriesModel> getAllChats(String conversationId) async {
+  Future<ChatHistoriesModel> getSingleChats(String conversationId) async {
     try {
       var dio = await getBaseApi();
       final response = await dio.get(
@@ -80,7 +79,9 @@ class ServiceChats {
         'conversationId': conversationId ?? uuid.v4(),
         'question': askContent
       };
+      final Map<String, dynamic> headers = {'Culture': 'c=vi|uic=vi'};
       var dio = await getBaseApi();
+      dio.options.headers.addAll(headers);
       final response = await dio.post(BaseApi.askChat, data: body);
       if (response.statusCode == 200) {
         return askChatModelFromJson(response.data.toString());
@@ -91,9 +92,9 @@ class ServiceChats {
           result: AskChatResult(
               conversationId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
               conversationName: "Error",
-              answer: L(LanguageCodes.errorServerTextInfo.toString()),
+              answer: "Server error",
               success: false,
-              message: L(LanguageCodes.errorServerTextInfo.toString()),
+              message: "Server error",
               isFriendlyException: true),
           targetUrl: null,
           success: false,
@@ -107,9 +108,9 @@ class ServiceChats {
       result: AskChatResult(
           conversationId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
           conversationName: "Error",
-          answer: L(LanguageCodes.errorServerTextInfo.toString()),
+          answer: "Server error",
           success: false,
-          message: L(LanguageCodes.errorServerTextInfo.toString()),
+          message: "Server error",
           isFriendlyException: true),
       targetUrl: null,
       success: false,

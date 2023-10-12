@@ -13,4 +13,6 @@ class AccountRepository {
       serviceAccount.signIn(username, password);
   Future<BaseOutputModel> forgotPassword() =>
       serviceAccount.forgotPassword(username);
+  Future<BaseOutputModel> changeLanguage(String code) =>
+      serviceAccount.changeLanguage(code);
 }

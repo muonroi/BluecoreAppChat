@@ -17,4 +17,5 @@ class BaseApi {
       "DataAssistant/UpdateConversationName?conversationId=%s&newName=%s";
   static const String chatUrl =
       "${baseUrl}signalr-dataAssistantHub?enc_auth_token=%s";
+  static const String changeLanguage = "${baseApi}Profile/ChangeLanguage";
 }

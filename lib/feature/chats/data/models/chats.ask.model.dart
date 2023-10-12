@@ -1,8 +1,5 @@
 import 'dart:convert';
 
-import 'package:bluecore/core/localization/core.language_code.dart';
-import 'package:bluecore/shared/settings/shared.settings.dart';
-
 AskChatModel askChatModelFromJson(String str) =>
     AskChatModel.fromJson(json.decode(str));
 
@@ -35,6 +32,7 @@ class AskChatModel {
       );
 
   Map<String, dynamic> toJson() => {
+        // ignore: prefer_null_aware_operators
         "result": result != null ? result!.toJson() : null,
         "targetUrl": targetUrl,
         "success": success,
@@ -64,13 +62,12 @@ class AskChatResult {
   factory AskChatResult.fromJson(Map<String, dynamic> json) => AskChatResult(
         conversationId:
             json["conversationId"] ?? "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        conversationName: json["conversationName"] ?? "Error Server",
+        conversationName: json["conversationName"] ?? "Server error",
         answer: json["answer"] == null || json["answer"] == ''
-            ? L(LanguageCodes.errorServerTextInfo.toString())
+            ? "Server error"
             : json["answer"],
         success: json["success"] ?? false,
-        message:
-            json["message"] ?? L(LanguageCodes.errorServerTextInfo.toString()),
+        message: json["message"] ?? "Server error",
         isFriendlyException: json["isFriendlyException"] ?? false,
       );
 

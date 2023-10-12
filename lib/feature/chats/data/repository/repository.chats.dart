@@ -9,8 +9,8 @@ class ChatRepository {
 
   ChatRepository();
 
-  Future<ChatHistoriesModel> getAllHistoriesChat(String conversationId) =>
-      serviceChat.getAllChats(conversationId);
+  Future<ChatHistoriesModel> getSingleHistoriesChat(String conversationId) =>
+      serviceChat.getSingleChats(conversationId);
 
   Future<ChatTenantModel> getModelChat() => serviceChat.getChatsInfoByTenant();
 

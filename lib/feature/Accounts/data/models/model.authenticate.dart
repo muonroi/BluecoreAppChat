@@ -33,6 +33,7 @@ class AuthenticateModel {
       );
 
   Map<String, dynamic> toJson() => {
+        // ignore: prefer_null_aware_operators
         "result": result != null ? result!.toJson() : null,
         "targetUrl": targetUrl,
         "success": success,

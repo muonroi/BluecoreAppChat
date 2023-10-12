@@ -3,7 +3,54 @@ import 'package:bluecore/core/localization/core.language_code.dart';
 
 class LocalizationLib {
   static final Map<String, Map<String, String>> _localizedValues = {
-    Languages.en: {},
+    Languages.en: {
+      LanguageCodes.notfoundTextInfo.toString(): 'Not Found',
+      LanguageCodes.usernameTextInfo.toString(): 'Username or Email',
+      LanguageCodes.passwordTextInfo.toString(): 'Password',
+      LanguageCodes.noAccountTextInfo.toString(): 'Don\'t have an account?',
+      LanguageCodes.initAccountTextInfo.toString(): 'Create an account',
+      LanguageCodes.forgotPasswordTextInfo.toString(): 'Forgot Password',
+      LanguageCodes.invalidAccountTextInfo.toString():
+          'Invalid username or password',
+      LanguageCodes.rememberTextInfo.toString(): 'Remember',
+      LanguageCodes.submitTextInfo.toString(): 'Submit',
+      LanguageCodes.forgotPasswordMoreInfoTextInfo.toString():
+          'A password reset link will be sent to your email to reset your password. If you don\'t receive an email within a few minutes, please try again.',
+      LanguageCodes.backInfoTextInfo.toString(): 'Back',
+      LanguageCodes.sendPasswordSuccessTextInfo.toString():
+          'A password reset link has been sent to your email. Please check your email.',
+      LanguageCodes.notificationTextInfo.toString(): 'Notification',
+      LanguageCodes.sendTextInfo.toString(): 'Send',
+      LanguageCodes.ignoreTextInfo.toString(): 'Ignore',
+      LanguageCodes.playgroundTextInfo.toString(): 'Check',
+      LanguageCodes.blueCoreBotTextInfo.toString(): 'Bluecore Bot',
+      LanguageCodes.customerIdTextInfo.toString(): 'Customer ID',
+      LanguageCodes.enterContentMessageChatTextInfo.toString():
+          'Enter message content here',
+      LanguageCodes.historiesMessageChatTextInfo.toString(): 'History',
+      LanguageCodes.supportedCustomerMessageChatTextInfo.toString():
+          'Data assistant',
+      LanguageCodes.emptyHistoriesMessageChatTextInfo.toString():
+          'Empty history',
+      LanguageCodes.removeAllMessageChatTextInfo.toString(): 'Remove all',
+      LanguageCodes.logoutTextInfo.toString(): 'Logout',
+      LanguageCodes.removeSingleChatTextInfo.toString(): 'Remove chat',
+      LanguageCodes.changeNameChatTextInfo.toString(): 'Change name',
+      LanguageCodes.newChatTextInfo.toString(): 'New chat',
+      LanguageCodes.respondingTextInfo.toString(): 'Responding...',
+      LanguageCodes.pleaseChooseChatIdTextInfo.toString():
+          'Please choose the chat to rename',
+      LanguageCodes.noNameChatIdTextInfo.toString(): 'Unnamed',
+      LanguageCodes.errorServerTextInfo.toString():
+          'Server not responding, please try again later',
+      LanguageCodes.isConfirmTextInfo.toString():
+          'This action cannot be undone! Do you want to proceed?',
+      LanguageCodes.isSureTextInfo.toString(): 'Yes',
+      LanguageCodes.isNotSureTextInfo.toString(): 'No',
+      LanguageCodes.youSureLogoutTextInfo.toString():
+          'Are you sure you want to logout?',
+      LanguageCodes.copiedTextInfo.toString(): 'Copied',
+    },
     Languages.vi: {
       LanguageCodes.notfoundTextInfo.toString(): 'Không xác định',
       LanguageCodes.usernameTextInfo.toString(): 'Tài khoản hoặc email',
@@ -30,7 +77,7 @@ class LocalizationLib {
           'Nhập nội dung tin nhắn ở đây',
       LanguageCodes.historiesMessageChatTextInfo.toString(): 'Lịch sử',
       LanguageCodes.supportedCustomerMessageChatTextInfo.toString():
-          'Hệ thống hỗ trợ khách hàng',
+          'Trợ lý dữ liệu',
       LanguageCodes.emptyHistoriesMessageChatTextInfo.toString():
           'Lịch sử trống',
       LanguageCodes.removeAllMessageChatTextInfo.toString(): 'Xoá tất cả',
@@ -50,6 +97,7 @@ class LocalizationLib {
       LanguageCodes.isNotSureTextInfo.toString(): 'Không',
       LanguageCodes.youSureLogoutTextInfo.toString():
           'Bạn có muốn đăng xuất không?',
+      LanguageCodes.copiedTextInfo.toString(): 'Đã sao chép vào bộ nhớ tạm',
     }
   };
   static String L(String key, {String locale = 'vi'}) {

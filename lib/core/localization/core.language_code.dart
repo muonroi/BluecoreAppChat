@@ -33,5 +33,8 @@ enum LanguageCodes {
   isConfirmTextInfo,
   isSureTextInfo,
   isNotSureTextInfo,
-  youSureLogoutTextInfo
+  youSureLogoutTextInfo,
+  copiedTextInfo,
+  downloadSuccessTextInfo,
+  downloadUnSuccessTextInfo
 }

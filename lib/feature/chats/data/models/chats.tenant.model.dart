@@ -1,8 +1,5 @@
 import 'dart:convert';
 
-import 'package:bluecore/core/localization/core.language_code.dart';
-import 'package:bluecore/shared/settings/shared.settings.dart';
-
 ChatTenantModel chatTenantModelFromJson(String str) =>
     ChatTenantModel.fromJson(json.decode(str));
 
@@ -57,7 +54,7 @@ class Result {
   });
 
   factory Result.fromJson(Map<String, dynamic> json) => Result(
-        name: json["name"] ?? L(LanguageCodes.noNameChatIdTextInfo.toString()),
+        name: json["name"] ?? "Anonymous",
         value: json["value"],
       );
 

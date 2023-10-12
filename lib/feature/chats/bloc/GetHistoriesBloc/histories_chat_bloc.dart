@@ -13,7 +13,7 @@ class ChatBloc extends Bloc<ChatEvent, MyChatState> {
       try {
         emit(ChatLoadingState());
         final mList =
-            await chatRepository.getAllHistoriesChat(event.conversationId);
+            await chatRepository.getSingleHistoriesChat(event.conversationId);
         emit(ChatLoadedState(mList, true));
       } on NetworkError {
         emit(const ChatErrorState(

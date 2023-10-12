@@ -1,18 +1,23 @@
-import 'dart:convert';
 import 'package:bluecore/core/localization/core.language.dart';
 import 'package:bluecore/core/localization/core.localization.dart';
 import 'package:bluecore/feature/accounts/data/models/model.token.dart';
+import 'package:bluecore/feature/chats/provider/provider.chat.dart';
 import 'package:bluecore/shared/models/device.dart';
 import 'package:bluecore/shared/settings/shared.settings.base.url.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sprintf/sprintf.dart';
 
 enum KeyToken { accessToken, refreshToken, encToken }
 
-String L(String key, {String locate = Languages.vi}) {
-  return LocalizationLib.L(key, locale: locate);
+String L(BuildContext context, String key, {String locate = Languages.vi}) {
+  final chooseLanguage = context.watch<ChatProvider>();
+  return LocalizationLib.L(key,
+      locale: chooseLanguage.language == Languages.none
+          ? locate
+          : chooseLanguage.language);
 }
 
 SizeDeviceScreen getPercentageOfDevice(BuildContext context,
