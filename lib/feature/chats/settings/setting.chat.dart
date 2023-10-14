@@ -9,6 +9,7 @@ import 'package:top_snackbar_flutter/top_snack_bar.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 int getMonthAgo(DateTime dateTime) {
   DateTime currentDate = DateTime.now();
@@ -75,7 +76,8 @@ List<Widget> menuWidget(BuildContext context, String text) {
               backgroundColor: ColorsGlobal.mainColor,
               content: SizedBox(
                   width: getPercentageOfDevice(context, expectWidth: 50).width,
-                  child: const Text('Copied')),
+                  child: Text(
+                      L(context, LanguageCodes.copiedTextInfo.toString()))),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -87,6 +89,18 @@ List<Widget> menuWidget(BuildContext context, String text) {
     multiLine: true,
   );
   final detectLink = RegExp(r'\[.*\]\((.*)\)');
+  RegExp detectChart = RegExp(
+    r'[{\[]{1}([,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]|".*?")+[}\]]{1}',
+    multiLine: true,
+    unicode: true,
+  );
+  if (detectChart.hasMatch(text)) {
+    contentMenu.add(IconButton(
+        onPressed: () {
+          prePreviewChart(context, text);
+        },
+        icon: const Icon(Icons.bar_chart_outlined)));
+  }
   if (detectTable.hasMatch(text)) {
     contentMenu.add(IconButton(
         onPressed: () {
@@ -112,6 +126,63 @@ List<Widget> menuWidget(BuildContext context, String text) {
     ));
   }
   return contentMenu;
+}
+
+void prePreviewChart(BuildContext context, String text) {
+  RegExp detectChart = RegExp(
+    r'[{\[]{1}([,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]|".*?")+[}\]]{1}',
+    multiLine: true,
+    unicode: true,
+  );
+  final controller = WebViewController()
+    ..setJavaScriptMode(JavaScriptMode.unrestricted)
+    ..loadHtmlString('''
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+      <style>
+      @import url(https://fonts.googleapis.com/css?family=Roboto);
+
+body {
+  font-family: Roboto, sans-serif;
+}
+
+#chart {
+  max-width: 1050px;
+  margin: 35px auto;
+}
+
+      </style>
+      </head>
+
+      <body>
+        <div id="chart"></div>
+
+        <script>
+        var options = ${detectChart.firstMatch(text)![0]}
+
+var chart = new ApexCharts(document.querySelector("#chart"), options);
+
+chart.render();
+        </script>
+      </body>
+    </html>
+    ''');
+  showDialog(
+      context: context,
+      builder: (builder) {
+        return Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back_ios),
+              color: ColorsGlobal.textColor,
+            ),
+          ),
+          body: WebViewWidget(controller: controller),
+        );
+      });
 }
 
 void prePreviewTable(BuildContext context, String text) {
@@ -142,13 +213,16 @@ void prePreviewTable(BuildContext context, String text) {
             },
             child: SingleChildScrollView(
                 scrollDirection: scrollAxis ? Axis.horizontal : Axis.vertical,
-                child: SizedBox(
-                  width: 5000,
-                  child: MarkdownBody(
-                    data: text,
-                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
-                        .copyWith(
-                      textScaleFactor: 0.8,
+                child: InteractiveViewer(
+                  child: SizedBox(
+                    width: 8000,
+                    child: MarkdownBody(
+                      data: text,
+                      styleSheet:
+                          MarkdownStyleSheet.fromTheme(Theme.of(context))
+                              .copyWith(
+                        textScaleFactor: 0.8,
+                      ),
                     ),
                   ),
                 )),
@@ -181,4 +255,11 @@ void showInfoSnackBar(BuildContext context, String message, bool isSuccess) {
           : CustomSnackBar.error(
               message: message,
             ));
+}
+
+int countTableColumn(BuildContext context, String text) {
+  List<String> rows = text.trim().split('\n');
+  List<String> headerRow =
+      rows.first.split('|').where((col) => col.trim().isNotEmpty).toList();
+  return headerRow.length;
 }

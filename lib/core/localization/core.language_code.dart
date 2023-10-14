@@ -36,5 +36,6 @@ enum LanguageCodes {
   youSureLogoutTextInfo,
   copiedTextInfo,
   downloadSuccessTextInfo,
-  downloadUnSuccessTextInfo
+  downloadUnSuccessTextInfo,
+  clickToViewTextInfo
 }

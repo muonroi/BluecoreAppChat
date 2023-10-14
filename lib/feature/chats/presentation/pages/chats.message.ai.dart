@@ -141,6 +141,16 @@ class _MessageAiPageState extends State<MessageAiPage> {
   Widget build(BuildContext context) {
     Widget customMessageBuilder(types.CustomMessage customMessage,
         {required int messageWidth}) {
+      final detectChart = RegExp(
+        r'[{\[]{1}([,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]|".*?")+[}\]]{1}',
+        multiLine: true,
+        unicode: true,
+      );
+      final detectTable = RegExp(
+        r'\|(?:([^\r\n|]*)\|)+\r?\n\|(?:(:?-+:?)\|)+\r?\n(\|(?:([^\r\n|]*)\|)+\r?\n)+',
+        multiLine: true,
+        unicode: true,
+      );
       bool isBot(String id) => id == DefaultTemplate.getBotTemplate().id;
       var content = customMessage.repliedMessage as types.TextMessage;
       return Stack(children: [
@@ -174,145 +184,66 @@ class _MessageAiPageState extends State<MessageAiPage> {
                       },
                     );
                   },
-                  child: MarkdownBody(
-                    onTapLink: (text, href, title) async {
-                      await launchUrl(Uri.parse(href!));
-                    },
-                    onTapText: () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return SizedBox(
-                            height:
-                                getPercentageOfDevice(context, expectHeight: 80)
-                                    .height,
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: menuWidget(context, content.text!),
+                  child: SizedBox(
+                    child: MarkdownBody(
+                      onTapLink: (text, href, title) async {
+                        await launchUrl(Uri.parse(href!));
+                      },
+                      onTapText: () {
+                        showModalBottomSheet<void>(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return SizedBox(
+                              height: getPercentageOfDevice(context,
+                                      expectHeight: 80)
+                                  .height,
+                              child: Center(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: menuWidget(context, content.text!),
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    selectable: true,
-                    data: content.text!,
-                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
-                        .copyWith(
-                      p: isBot(content.author.id)
-                          ? const TextStyle(color: ColorsGlobal.textColor)
-                          : const TextStyle(color: ColorsGlobal.whiteColor),
-                      textScaleFactor: 1,
+                            );
+                          },
+                        );
+                      },
+                      selectable: true,
+                      data: detectChart.hasMatch(content.text!)
+                          ? L(context,
+                              LanguageCodes.clickToViewTextInfo.toString())
+                          : (detectTable.hasMatch(content.text!) &&
+                                  countTableColumn(
+                                          context,
+                                          detectTable
+                                              .firstMatch(content.text!)![0]!) >
+                                      3)
+                              ? L(context,
+                                  LanguageCodes.clickToViewTextInfo.toString())
+                              : content.text!,
+                      styleSheet:
+                          MarkdownStyleSheet.fromTheme(Theme.of(context))
+                              .copyWith(
+                        p: (detectChart.hasMatch(content.text!) ||
+                                (detectTable.hasMatch(content.text!) &&
+                                    countTableColumn(
+                                            context,
+                                            detectTable.firstMatch(
+                                                content.text!)![0]!) >
+                                        3))
+                            ? const TextStyle(
+                                color: Colors.lightBlue,
+                                decorationColor: Colors.lightBlue,
+                                decoration: TextDecoration.underline,
+                                decorationStyle: TextDecorationStyle.solid)
+                            : isBot(content.author.id)
+                                ? const TextStyle(color: ColorsGlobal.textColor)
+                                : const TextStyle(
+                                    color: ColorsGlobal.whiteColor),
+                        textScaleFactor: 1,
+                      ),
                     ),
-                  )
-                  // : ParsedText(
-                  //     onTap: () {},
-                  //     text: content.text!,
-                  //     selectable: true,
-                  //     style: isBot(content.author.id)
-                  //         ? FontsGlobal.h5
-                  //         : FontsGlobal.h5
-                  //             .copyWith(color: ColorsGlobal.whiteColor),
-                  //     regexOptions:
-                  //         const RegexOptions(multiLine: true, dotAll: true),
-                  //     parse: [
-                  //       MatchText(
-                  //         pattern:
-                  //             '\\|(?:([^\r\n|]*)\\|)+\r?\n\\|(?:(:?-+:?)\\|)+\r?\n(\\|(?:([^\r\n|]*)\\|)+\r?\n)+',
-                  //         onTap: (url) {
-                  //           prePreviewTable(context, url);
-                  //         },
-                  //         style: FontsGlobal.h5,
-                  //         renderWidget: renderMarkdownWidget,
-                  //       ),
-                  //       MatchText(
-                  //         pattern: regexLink,
-                  //         onTap: (url) async {
-                  //           debugPrint(url);
-                  //           if (await canLaunchUrl(Uri.parse(url))) {
-                  //             await launchUrl(Uri.parse(url));
-                  //           }
-                  //         },
-                  //         style: FontsGlobal.h5
-                  //             .copyWith(decoration: TextDecoration.underline),
-                  //         renderWidget: renderMarkdownWidget,
-                  //       ),
-                  //       MatchText(
-                  //         pattern: '(\\*\\*|\\*)(.*?)(\\*\\*|\\*)',
-                  //         onTap: (_) {},
-                  //         style: FontsGlobal.h5
-                  //             .copyWith(fontWeight: FontWeight.w700),
-                  //         renderText: (
-                  //             {required String str,
-                  //             required String pattern}) {
-                  //           return {
-                  //             'display':
-                  //                 str.replaceAll(RegExp('(\\*\\*|\\*)'), '')
-                  //           };
-                  //         },
-                  //       ),
-                  //       MatchText(
-                  //         pattern: "\\[([^\\]]*)\\]\\(.*\\)",
-                  //         onTap: (str) async {
-                  //           RegExp regex = RegExp(r'\[.*\]\((.*)\)');
-                  //           Match match = regex.firstMatch(str)!;
-                  //           if (await canLaunchUrl(
-                  //               Uri.parse(match.group(1)!))) {
-                  //             await launchUrl(Uri.parse(match.group(1)!));
-                  //           }
-                  //         },
-                  //         style: FontsGlobal.h5
-                  //             .copyWith(fontWeight: FontWeight.w700),
-                  //         renderText: (
-                  //             {required String str,
-                  //             required String pattern}) {
-                  //           return {
-                  //             'display':
-                  //                 str.replaceAll(RegExp('\\(.*\\)'), '')
-                  //           };
-                  //         },
-                  //       ),
-                  //       MatchText(
-                  //         pattern: '_(.*?)_',
-                  //         onTap: (_) {},
-                  //         style: FontsGlobal.h5
-                  //             .copyWith(fontStyle: FontStyle.italic),
-                  //         renderText: (
-                  //             {required String str,
-                  //             required String pattern}) {
-                  //           return {'display': str.replaceAll('_', '')};
-                  //         },
-                  //       ),
-                  //       MatchText(
-                  //         pattern: '~(.*?)~',
-                  //         onTap: (_) {},
-                  //         style: FontsGlobal.h5.copyWith(
-                  //           decoration: TextDecoration.lineThrough,
-                  //         ),
-                  //         renderText: (
-                  //             {required String str,
-                  //             required String pattern}) {
-                  //           return {'display': str.replaceAll('~', '')};
-                  //         },
-                  //       ),
-                  //       MatchText(
-                  //         pattern: '`(.*?)`',
-                  //         onTap: (_) {},
-                  //         style: FontsGlobal.h5.copyWith(
-                  //           fontFamily:
-                  //               Platform.isIOS ? 'Courier' : 'monospace',
-                  //         ),
-                  //         renderText: (
-                  //             {required String str,
-                  //             required String pattern}) {
-                  //           return {'display': str.replaceAll('`', '')};
-                  //         },
-                  //       ),
-                  //     ],
-                  //   ),
-                  ),
+                  )),
             ],
           ),
         ),

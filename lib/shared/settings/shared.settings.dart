@@ -13,7 +13,10 @@ import 'package:sprintf/sprintf.dart';
 enum KeyToken { accessToken, refreshToken, encToken }
 
 String L(BuildContext context, String key, {String locate = Languages.vi}) {
-  final chooseLanguage = context.watch<ChatProvider>();
+  ChatProvider chooseLanguage = ChatProvider();
+  if (context.mounted) {
+    chooseLanguage = context.watch<ChatProvider>();
+  }
   return LocalizationLib.L(key,
       locale: chooseLanguage.language == Languages.none
           ? locate

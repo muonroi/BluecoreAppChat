@@ -50,6 +50,7 @@ class LocalizationLib {
       LanguageCodes.youSureLogoutTextInfo.toString():
           'Are you sure you want to logout?',
       LanguageCodes.copiedTextInfo.toString(): 'Copied',
+      LanguageCodes.clickToViewTextInfo.toString(): 'Click to view',
     },
     Languages.vi: {
       LanguageCodes.notfoundTextInfo.toString(): 'Không xác định',
@@ -98,6 +99,7 @@ class LocalizationLib {
       LanguageCodes.youSureLogoutTextInfo.toString():
           'Bạn có muốn đăng xuất không?',
       LanguageCodes.copiedTextInfo.toString(): 'Đã sao chép vào bộ nhớ tạm',
+      LanguageCodes.clickToViewTextInfo.toString(): 'Nhấn vào để xem',
     }
   };
   static String L(String key, {String locale = 'vi'}) {
